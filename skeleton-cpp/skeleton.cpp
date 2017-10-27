@@ -4,7 +4,6 @@
 
 #include <fstream>
 #include <iostream>
-#include <random>
 
 class my_ai
   : public aiwc::ai_base
