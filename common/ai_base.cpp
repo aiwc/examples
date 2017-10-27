@@ -194,9 +194,6 @@ namespace aiwc {
 
   void ai_base::run()
   {
-    // call custom init: init() is called here since virtual function should NEVER be called in constructor
-    init();
-
     // std::cout << "server_ip: " << server_ip << std::endl;
     // std::cout << "port: " << port << std::endl;
     // std::cout << "realm: " << realm << std::endl;
@@ -227,6 +224,8 @@ namespace aiwc {
                                            pimpl->events_cv.notify_one();
                                          }).get();
 
+    // call custom init: init() is called here since virtual function should NEVER be called in constructor
+    init();
 
     // call ready
     pimpl->session->call("aiwc.ready", std::tuple<std::string>{key}).get();

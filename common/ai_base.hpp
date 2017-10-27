@@ -66,7 +66,7 @@ namespace aiwc {
 
     std::vector<subimage> subimages;
 
-    using robot_coord = std::tuple<double, double, double, bool>; // x, y, th
+    using robot_coord = std::tuple<double, double, double, bool>; // x, y, th, active
     using ball_coord = std::array<double, 2>; // x, y
 
     // coordinate is optional.
