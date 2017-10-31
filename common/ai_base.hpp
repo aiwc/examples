@@ -11,6 +11,26 @@
 
 namespace aiwc {
 
+  struct robot_coordinate
+  {
+    double x;
+    double y;
+    double th;
+    bool is_active;
+  };
+
+  struct ball_coordinate
+  {
+    double x;
+    double y;
+  };
+
+  struct coordinates
+  {
+    std::array<std::vector<robot_coordinate>, 2> robots;
+    ball_coordinate ball;
+  };
+
   struct team_info
   {
     std::string name;
@@ -66,21 +86,14 @@ namespace aiwc {
 
     std::vector<subimage> subimages;
 
-    using robot_coord = std::tuple<double, double, double, bool>; // x, y, th, active
-    using ball_coord = std::array<double, 2>; // x, y
-
     // coordinate is optional.
-    boost::optional<std::tuple<std::array<robot_coord, 5>
-                             , std::array<robot_coord, 5>
-                             , ball_coord
-                             >
-                  > opt_coordinates;
+    boost::optional<coordinates> opt_coordinates;
   };
 
   class ai_base
   {
   protected:
-    enum { MYTEAM, OPPONENT, BALL };
+    enum { MYTEAM, OPPONENT };
     enum { X, Y, TH, ACTIVE };
 
   public:

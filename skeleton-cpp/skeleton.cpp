@@ -47,16 +47,14 @@ private:
     }
 
     if(f.opt_coordinates) { // if the optional coordinates are given,
-      // const auto& myteam   = std::get<MYTEAM>  (*f.opt_coordinates);
-      // const auto& opponent = std::get<OPPONENT>(*f.opt_coordinates);
-      // const auto& ball     = std::get<BALL>    (*f.opt_coordinates);
+      // const auto& myteam   = f.opt_coordinates->robots[MYTEAM];
+      // const auto& opponent = f.opt_coordinates->robots[OPPONENT];
+      // const auto& ball     = f.opt_coordinates->ball;
 
-      // const auto& myteam0 = myteam[0]; // id=0 robot
-
-      // const auto& myteam0_x      = std::get<X>(myteam0);
-      // const auto& myteam0_y      = std::get<Y>(myteam0);
-      // const auto& myteam0_th     = std::get<TH>(myteam0);
-      // const auto& myteam0_active = std::get<ACTIVE>(myteam0); // if false, the robot is currently out of the field and deactivated
+      // const auto& myteam0_x      = (*f.opt_coordinates).robots[MYTEAM][0].x;
+      // const auto& myteam0_y      = (*f.opt_coordinates).robots[MYTEAM][0].y;
+      // const auto& myteam0_th     = (*f.opt_coordinates).robots[MYTEAM][0].th;
+      // const auto& myteam0_active = (*f.opt_coordinates).robots[MYTEAM][0].is_active;
     }
     else { // given no coordinates, you need to get coordinates from image
     }
