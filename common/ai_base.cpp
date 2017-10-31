@@ -1,9 +1,10 @@
+#include <boost/asio.hpp> // need to be the first header to avoid winsock error in windows
+
 #include "ai_base.hpp"
 
 #include <autobahn/autobahn.hpp>
 #include <msgpack.hpp>
 
-#include <boost/asio.hpp>
 #include <boost/optional.hpp>
 
 #include <chrono>

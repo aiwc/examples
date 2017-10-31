@@ -1,6 +1,7 @@
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/random/random_device.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -29,7 +30,7 @@ private:
 
     if(f.time >= last_changed + dur) {
       last_changed = f.time;
-      std::mt19937 rng{std::random_device{}()};
+      std::mt19937 rng{boost::random_device{}()};
       std::uniform_real_distribution<double> dist(-info.max_linear_velocity, info.max_linear_velocity);
 
       std::array<double, 10> wheels;

@@ -3,7 +3,9 @@ project(random_walk)
 
 find_package(Threads REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS system thread)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
 
 add_executable(random_walk random_walk.cpp ../common/ai_base.cpp)
 include_directories(
@@ -17,3 +19,12 @@ target_link_libraries(random_walk
   ${Boost_LIBRARIES}
   )
 set_property(TARGET random_walk PROPERTY CXX_STANDARD 14)
+
+if(WIN32)
+  if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+    include_directories(../extlibs/openssl/include)
+  else()
+    include_directories(../extlibs/openssl/include64)
+  endif()
+  add_definitions(-D_WIN32_WINNT=0x0500 -D_WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
