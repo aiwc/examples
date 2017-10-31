@@ -45,6 +45,45 @@ namespace msgpack {
       };
 
       template<>
+      struct convert<aiwc::robot_coordinate>
+      {
+        msgpack::object const& operator()(msgpack::object const& o, aiwc::robot_coordinate& v) const
+        {
+          const auto coord = o.as<std::tuple<double, double, double, bool> >(); // x, y, th, active
+          v = aiwc::robot_coordinate{ std::get<0>(coord),
+                                      std::get<1>(coord),
+                                      std::get<2>(coord),
+                                      std::get<3>(coord) };
+          return o;
+        }
+      };
+
+      template<>
+      struct convert<aiwc::ball_coordinate>
+      {
+        msgpack::object const& operator()(msgpack::object const& o, aiwc::ball_coordinate& v) const
+        {
+          const auto coord = o.as<std::array<double, 2> >();
+          v = aiwc::ball_coordinate{ coord[0], coord[1] };
+          return o;
+        }
+      };
+
+      template <>
+      struct convert<aiwc::coordinates>
+      {
+        msgpack::object const& operator()(msgpack::object const& o, aiwc::coordinates& v) const
+        {
+          const auto coords = o.as<std::tuple<std::vector<aiwc::robot_coordinate>,
+                                              std::vector<aiwc::robot_coordinate>,
+                                              aiwc::ball_coordinate> >();
+          v = aiwc::coordinates{ { std::get<0>(coords), std::get<1>(coords), },
+                                 std::get<2>(coords) };
+          return o;
+        }
+      };
+
+      template<>
       struct convert<aiwc::game_info>
       {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::game_info& v) const
