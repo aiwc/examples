@@ -7,3 +7,4 @@ cmake_install.cmake
 *.sln
 *.dir
 Win32
+.vs
