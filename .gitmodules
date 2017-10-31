@@ -1,6 +1,6 @@
 [submodule "extlibs/autobahn-cpp"]
 	path = extlibs/autobahn-cpp
-	url = https://github.com/crossbario/autobahn-cpp.git
+	url = https://github.com/aiwc/extlib-autobahn-cpp.git
 [submodule "extlibs/msgpack-c"]
 	path = extlibs/msgpack-c
 	url = https://github.com/msgpack/msgpack-c.git
