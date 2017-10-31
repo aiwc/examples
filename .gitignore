@@ -2,3 +2,9 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 cmake_install.cmake
+*.vcxproj
+*.vcxproj.filters
+*.sln
+*.dir
+Win32
+.vs
