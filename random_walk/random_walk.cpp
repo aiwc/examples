@@ -44,7 +44,7 @@ private:
   void finish()
   {
     // You have less than 30 seconds before it's killed.
-    std::fstream ofs(datapath + "/result.txt");
+    std::ofstream ofs(datapath + "/result.txt");
     ofs << "my_result" << std::endl;
   }
 
