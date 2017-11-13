@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(basic_ai)
+project(rulebased_algorithm)
 
 find_package(Threads REQUIRED)
 
@@ -7,18 +7,18 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
 
-add_executable(basic_ai basic_ai.cpp ../common/ai_base.cpp)
+add_executable(rulebased_algorithm rulebased_algorithm.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(basic_ai
+target_link_libraries(rulebased_algorithm
   Threads::Threads
   ${Boost_LIBRARIES}
   )
-set_property(TARGET basic_ai PROPERTY CXX_STANDARD 14)
+set_property(TARGET rulebased_algorithm PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
