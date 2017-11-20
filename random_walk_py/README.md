@@ -11,11 +11,14 @@ A python implementation for the random walk example described in: [here](https:/
 
 For versions <= 8.6.1, Webots will require Python 2.7.
 
-Other requirements: [autobahn, twisted](http://autobahn.readthedocs.io/en/latest/installation.html)
+Other requirements: [autobahn, twisted](http://autobahn.readthedocs.io/en/latest/installation.html), u-msgpack-python
 
 ```shell
 # Install autobahn[twisted] using PIP
 pip install autobahn[twisted]
+
+# Install u-msgpack-python using PIP
+pip install u-msgpack-python
 ```
 
 If you do not have pip installed, install using this [link](https://pip.pypa.io/en/stable/installing/).
@@ -33,6 +36,14 @@ pyinstaller random_walk_py.py
 ```
 
 Use the executable generated in the directory /dist/random_walk_py as your TeamExecutable file using the *Webots(Windows)* API.
+
+## How to run this code using Linux?
+
+Change the first line of the python code adding the path to your python environment.
+
+Ex: #!usr/bin/python
+
+Use the path to the python code /examples/random_walk_py/random_walk_py.py as your TeamExecutable file using the *Webots(Linux)* API.
 
 # random_walk_py (Korean)
 
