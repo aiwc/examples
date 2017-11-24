@@ -62,6 +62,7 @@ namespace aiwc {
     SCORE_MYTEAM   = 2,
     SCORE_OPPONENT = 3,
     GAME_END       = 4,
+    DEADLOCK       = 5,
 
     // aliases
     SCORE_ATEAM = SCORE_MYTEAM,
@@ -110,6 +111,8 @@ namespace aiwc {
 
   protected:
     void set_wheel(const std::array<double, 10>& wheels);
+    void commentate(const std::string& comment);
+    void report(const std::vector<std::string>& report);
 
   private:
     virtual void init() = 0;
