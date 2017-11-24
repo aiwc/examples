@@ -94,7 +94,7 @@ namespace aiwc {
   class ai_base
   {
   protected:
-    enum { MYTEAM, OPPONENT };
+    enum { MYTEAM, OPPONENT, ATEAM = MYTEAM, BTEAM = OPPONENT };
     enum { X, Y, TH, ACTIVE };
 
   public:
