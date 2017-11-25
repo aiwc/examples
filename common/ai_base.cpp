@@ -348,9 +348,9 @@ namespace aiwc {
   }
 
   // element of report is a paragraph
-  void ai_base::report(const std::vector<std::string>& report)
+  void ai_base::report(const std::vector<std::string>& rep)
   {
-    pimpl->session->call("aiwc.report", std::make_tuple(key, report)).get();
+    pimpl->session->call("aiwc.report", std::make_tuple(key, rep)).get();
   }
 
 } // namespace aiwc

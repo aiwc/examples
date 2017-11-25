@@ -112,7 +112,7 @@ namespace aiwc {
   protected:
     void set_wheel(const std::array<double, 10>& wheels);
     void commentate(const std::string& comment);
-    void report(const std::vector<std::string>& report);
+    void report(const std::vector<std::string>& rep);
 
   private:
     virtual void init() = 0;
