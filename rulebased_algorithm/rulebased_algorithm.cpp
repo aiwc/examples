@@ -111,7 +111,7 @@ private:
     const double y = std::max(std::min(cur_ball[Y],
 				       info.goal[Y] / 2 - info.robot_size / 2),
 			      -info.goal[Y] / 2 + info.robot_size / 2); 
-    std::cout << "Target Pos: " << x << "," << y << std::endl;
+    // std::cout << "Target Pos: " << x << "," << y << std::endl;
     position(id, x, y);
   }
 
@@ -270,16 +270,16 @@ private:
     std::array<double, 10> ws;
 
     for(std::size_t id = 0; id < 5; ++id) {
-      std::cout << "Robot " << id << ":[" << robot_wheels[id][0] << "," << robot_wheels[id][1] << "]" << std::endl; //print robots info
+      // std::cout << "Robot " << id << ":[" << robot_wheels[id][0] << "," << robot_wheels[id][1] << "]" << std::endl; //print robots info
       ws[2*id    ] = robot_wheels[id][0]; // left
       ws[2*id + 1] = robot_wheels[id][1]; // right
     }
     set_wheel(ws); // this function is defined at ai_base.cpp
 
-    for(const auto& w : ws) {
-      std::cout << w << ", "; //print wheels
-    }
-    std::cout << std::endl;
+    // for(const auto& w : ws) {
+    //   std::cout << w << ", "; //print wheels
+    // }
+    // std::cout << std::endl;
     
   }
 
