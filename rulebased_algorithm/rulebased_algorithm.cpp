@@ -1,0 +1,338 @@
+#include "ai_base.hpp"
+
+#include <boost/lexical_cast.hpp>
+
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <vector>
+
+class my_ai
+  : public aiwc::ai_base
+{
+  static constexpr double PI = 3.1415926535;
+
+public:
+  my_ai(std::string server_ip, std::size_t port, std::string realm, std::string key, std::string datapath)
+    : aiwc::ai_base(std::move(server_ip), port, std::move(realm), std::move(key), std::move(datapath))
+    , robot_wheels{}
+  {
+    std::cout << "I am ready." << std::endl;
+  }
+
+private:
+  void init()
+  {
+  }
+
+  double d2r(double deg) {
+    return deg * PI / 180;
+  }
+
+  double r2d(double rad) {
+    return rad * 180 / PI;
+  }
+
+  double dist(double x1, double y1, double x2, double y2)
+  {
+    const auto dx = x1 - x2;
+    const auto dy = y1 - y2;
+    return std::sqrt(dx * dx + dy * dy);
+  }
+
+  void velocity(std::size_t id, double l, double r)
+  {
+    if(l > info.max_linear_velocity || l < -info.max_linear_velocity) {
+      const double ratio = l / info.max_linear_velocity;
+      l /= ratio;
+      r /= ratio;
+    }
+
+    robot_wheels[id] = {l, r};
+  }
+
+  void position(std::size_t id, double x, double y, double damping = 0.35)
+  {
+    const double mult_lin = 2;
+    const double mult_ang = 0.2;
+    
+    const double dx = x - cur_posture[id][X];
+    const double dy = y - cur_posture[id][Y];
+
+    const double d_e = std::sqrt(dx * dx + dy * dy);
+
+    const double desired_th = (dx == 0 && dy == 0) ? (PI / 2) : std::atan2(dy, dx);
+
+    double d_th = desired_th - cur_posture[id][TH];
+    while(d_th > PI) d_th -= 2 * PI;
+    while(d_th < -PI) d_th += 2 * PI;
+
+    double ka;
+    if(d_e > 1) {        ka = 17; }
+    else if(d_e > 0.5) { ka = 19; }
+    else if(d_e > 0.3) { ka = 21; }
+    else if(d_e > 0.2) { ka = 23; }
+    else               { ka = 25; }
+    ka /= 90;
+
+    int sign = 1;
+
+    if(d_th > d2r(95)) {
+      d_th -= PI;
+      sign = -1;
+    }
+    else if(d_th < d2r(-95)) {
+      d_th += PI;
+      sign = -1;
+    }
+
+    if(std::abs(d_th) > d2r(85)) {
+      velocity(id, -mult_ang * d_th, mult_ang * d_th);
+    }
+    else {
+      if(d_e < 5.0 && abs(d_th) < d2r(40)) {
+	ka = 0.1;
+      }
+      ka *= 4;
+      velocity(id, 
+	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) - mult_ang * ka * d_th),
+	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) + mult_ang * ka * d_th));
+    }
+  }
+
+  void kick(std::size_t id, double x, double y)
+  {
+    position(id, x, y, 0);
+  }
+
+  void goalie(std::size_t id)
+  {    
+	const double x = -info.field[X] / 2 + info.robot_size / 2 + 0.05;
+    const double y = std::max(std::min(cur_ball[Y],
+				       info.goal[Y] / 2 - info.robot_size / 2),
+			      -info.goal[Y] / 2 + info.robot_size / 2); 
+    // std::cout << "Target Pos: " << x << "," << y << std::endl;
+    position(id, x, y);
+  }
+
+  void defend(std::size_t id, std::size_t idx, double offset_y)
+  {
+    const double ox = 0.066;
+    const double oy = 0.044;
+
+    const double min_x = -info.field[X]/2 + info.robot_size/2 + 0.05;
+
+    // If ball is on offense
+    if(cur_ball[X] > 0) {
+	 // If ball is in the upper part of the field (y>0)
+	 if(cur_ball[Y] > 0){	  
+            position(id, (cur_ball[X]-1.1)/2, (std::min(cur_ball[Y],0.65))+offset_y);
+	 }
+	  // If ball is in the lower part of the field (y<0)
+      else {
+	    position(id, (cur_ball[X]-1.1)/2, (std::max(cur_ball[Y],-0.65))+offset_y);
+      }		
+    }
+    else {
+      // If robot is in front of the ball
+	  if(cur_posture[id][X] > cur_ball[X] - ox) {
+		 // if this defender is the nearest defender from the ball
+		 if (id == idx) {			 
+				position(id,
+						(cur_ball[X] - ox),
+						(cur_posture[id][Y] < 0)?(cur_ball[Y] + oy):(cur_ball[Y] - oy));
+		 }
+	     else {
+           position(id, 
+				   std::max((cur_ball[X]-0.01),min_x), 
+				   (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.01):(cur_posture[id][Y]-0.01));
+		 }	 
+      }
+	  // If robot is behind the ball
+      else {
+          if (id==idx) {   
+               position(id,
+				   cur_ball[X], 
+				   (cur_posture[id][Y] < 0)?(cur_ball[Y]):(cur_ball[Y]));
+		 }
+	     else {
+		   position(id, 
+				   std::max((cur_ball[X]-0.01),min_x),
+				   (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.01):(cur_posture[id][Y]-0.01));
+		 }	 
+      }
+    }
+
+  }	
+
+  void midfielder(std::size_t id, std::size_t idx, double offset_y)
+  {
+    const double ox = 0.066;
+    const double oy = 0.044;
+	const double threshold = 0.7;
+
+    const double ball_dist = dist(cur_posture[id][X], cur_posture[id][Y], cur_ball[X], cur_ball[Y]);
+    const double goal_dist = dist(cur_posture[id][X], cur_posture[id][Y], info.field[X] / 2, 0);	
+    
+	if (dist(cur_ball[X], cur_ball[Y], cur_posture[id][X], cur_posture[id][Y]) < 0.1 && ((std::abs(cur_posture[id][Y]) > 0.7) || ((std::abs(cur_posture[id][X]) > 0.9) && (std::abs(cur_posture[id][Y]) > info.goal[Y]/2)))) //Spin!
+      velocity(id, 1.2, -1.2);
+	else if (id==idx) {
+      if(ball_dist < 0.022) {
+		// if near the ball and near the opposite team goal
+		if(goal_dist < 0.66) {
+          position(id, info.field[X] / 2, 0);
+		}
+		else {
+		  // if near the ball bur in front of the ball
+		  if(cur_ball[X] < cur_posture[id][X] - 0.044) {
+		    double x_suggest = std::max(cur_ball[X] - 0.044, -info.field[X] / 6);
+			position(id, x_suggest, cur_ball[Y]);
+			}
+		  // if near the ball and behind the ball
+		  else {
+		    position(id, info.field[X] + info.goal[X], -info.goal[Y] / 2);
+	      }
+	    }
+	  }
+      else {
+        if (cur_ball[X] < cur_posture[id][X]) {
+		  if (cur_ball[Y] > 0)
+		    position(id, cur_ball[X] - ox, std::min((cur_ball[Y] - oy), 0.8));
+		  else
+		    position(id, cur_ball[X] - ox, std::max((cur_ball[Y] + oy), -0.8));
+		}
+		else {
+		  position(id, cur_ball[X], cur_ball[Y]);
+	    }
+	 }
+	}  
+	else {
+		position(id, std::max(cur_ball[X]-0.05,-0.5), cur_ball[Y]+offset_y);
+	}	
+
+  }
+
+  int find_closest_robot(void)
+  {
+    //Check for distances between each non-goallie robot and the ball, return the index of robot closest to the ball.
+    int min_idx = 0;
+    double min_dist = 9999.99;
+    for (int i = 0; i < info.number_of_robots - 1; i++) {
+      auto measured_dist = dist(cur_ball[X], cur_ball[Y], cur_posture[i][X], cur_posture[i][Y]); //calculate the distance
+      if (measured_dist < min_dist) { //if this robot's distance is shorter, replace. (robot with smaller idx has priority over one with larger idx when two dists are equal)
+        min_dist = measured_dist;
+        min_idx = i;
+      }
+    }
+    return min_idx;
+  }
+  
+  auto get_coord(const aiwc::frame& f)
+  {
+    decltype(cur_posture) cur;
+	std::array<double, 2> pos_ball = { (*f.opt_coordinates).ball.x, (*f.opt_coordinates).ball.y };
+
+    for(std::size_t id = 0; id < 5; ++id) {
+      cur[id][X]  = (*f.opt_coordinates).robots[MYTEAM][id].x;
+      cur[id][Y]  = (*f.opt_coordinates).robots[MYTEAM][id].y;
+      cur[id][TH] = (*f.opt_coordinates).robots[MYTEAM][id].th;
+    }
+
+    return std::make_pair(cur, pos_ball);
+  }
+
+  void update(const aiwc::frame& f)
+  {
+	frames.push_back(f);
+    if(f.reset_reason == aiwc::GAME_START) {
+      previous_frame = f;
+      std::tie(cur_posture, cur_ball) = get_coord(f);
+      return;
+    }
+    else if(f.reset_reason == aiwc::GAME_END) {
+      return;
+    }
+
+    std::tie(cur_posture, cur_ball) = get_coord(f);
+
+    int idx = find_closest_robot();
+
+	// Robots Functions
+    goalie(4);
+	defend(3, idx, 0.2);
+	defend(2, idx, -0.2);
+	midfielder(1, idx, 0.15);
+	midfielder(0, idx, -0.15);
+
+    prev_ball = cur_ball;
+    previous_frame = f;   
+
+    std::array<double, 10> ws;
+
+    for(std::size_t id = 0; id < 5; ++id) {
+      // std::cout << "Robot " << id << ":[" << robot_wheels[id][0] << "," << robot_wheels[id][1] << "]" << std::endl; //print robots info
+      ws[2*id    ] = robot_wheels[id][0]; // left
+      ws[2*id + 1] = robot_wheels[id][1]; // right
+    }
+    set_wheel(ws); // this function is defined at ai_base.cpp
+
+    // for(const auto& w : ws) {
+    //   std::cout << w << ", "; //print wheels
+    // }
+    // std::cout << std::endl;
+    
+  }
+
+  void finish()
+  {
+    // You have less than 30 seconds before it's killed.
+    std::ofstream ofs(datapath + "/result.txt");
+
+    // print header
+    ofs << "time, a.score, b.score, ";
+    ofs << "ball.x, ball.y" << std::endl;
+
+    // print data
+    for(const auto& f : frames) {
+      std::array<double, 2> ball;
+
+	  ball = { (*f.opt_coordinates).ball.x, (*f.opt_coordinates).ball.y };
+
+      ofs << f.time << ", "
+		<< f.score[0] << ", " << f.score[1] << ", ";
+
+      ofs << ball[X] << ", " << ball[Y] << std::endl;
+    }
+  }
+
+private: // member variable
+  aiwc::frame previous_frame;
+
+  std::array<std::array<double, 3>, 5> cur_posture;
+  std::array<double, 2> prev_ball;
+  std::array<double, 2> cur_ball;
+  
+  std::array<std::array<double, 2>, 5> robot_wheels;
+  
+  std::vector<aiwc::frame> frames;
+};
+
+int main(int argc, char *argv[])
+{
+  if(argc < 6) {
+    std::cerr << "Usage " << argv[0] << " server_ip port realm key datapath" << std::endl;
+    return -1;
+  }
+
+  const auto& server_ip = std::string(argv[1]);
+  const auto& port      = boost::lexical_cast<std::size_t>(argv[2]);
+  const auto& realm     = std::string(argv[3]);
+  const auto& key       = std::string(argv[4]);
+  const auto& datapath  = std::string(argv[5]);
+
+  my_ai ai(server_ip, port, realm, key, datapath);
+
+  ai.run();
+
+  return 0;
+}

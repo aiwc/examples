@@ -62,6 +62,7 @@ namespace aiwc {
     SCORE_MYTEAM   = 2,
     SCORE_OPPONENT = 3,
     GAME_END       = 4,
+    DEADLOCK       = 5,
 
     // aliases
     SCORE_ATEAM = SCORE_MYTEAM,
@@ -93,7 +94,7 @@ namespace aiwc {
   class ai_base
   {
   protected:
-    enum { MYTEAM, OPPONENT };
+    enum { MYTEAM, OPPONENT, ATEAM = MYTEAM, BTEAM = OPPONENT };
     enum { X, Y, TH, ACTIVE };
 
   public:
@@ -110,6 +111,8 @@ namespace aiwc {
 
   protected:
     void set_wheel(const std::array<double, 10>& wheels);
+    void commentate(const std::string& comment);
+    void report(const std::vector<std::string>& rep);
 
   private:
     virtual void init() = 0;

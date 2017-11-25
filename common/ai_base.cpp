@@ -339,12 +339,18 @@ namespace aiwc {
 
   void ai_base::set_wheel(const std::array<double, 10>& wheels)
   {
-    // try {
     pimpl->session->call("aiwc.set_speed", std::make_tuple(key, wheels)).get();
-    // }
-    // catch(const std::exception& e) {
-    //   std::cout << key << " : Exception " << e.what() << std::endl;
-    // }
+  }
+
+  void ai_base::commentate(const std::string& comment)
+  {
+    pimpl->session->call("aiwc.commentate", std::make_tuple(key, comment)).get();
+  }
+
+  // element of report is a paragraph
+  void ai_base::report(const std::vector<std::string>& rep)
+  {
+    pimpl->session->call("aiwc.report", std::make_tuple(key, rep)).get();
   }
 
 } // namespace aiwc
