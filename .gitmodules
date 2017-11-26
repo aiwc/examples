@@ -7,3 +7,6 @@
 [submodule "extlibs/websocketpp"]
 	path = extlibs/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
+[submodule "extlibs/cppcodec"]
+	path = extlibs/cppcodec
+	url = https://github.com/tplgy/cppcodec.git
