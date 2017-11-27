@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python2
 
 from __future__ import print_function
 
@@ -206,7 +206,6 @@ class Component(ApplicationSession):
         print("disconnected")
         if reactor.running:
             reactor.stop()
-
 
 if __name__ == '__main__':
     
