@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python2
 
 from __future__ import print_function
 
@@ -12,12 +12,16 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 import argparse
 import random
 
+import base64
+import numpy as np
+
 #reset_reason
 NONE = 0
 GAME_START = 1
 SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
+DEADLOCK = 5 # when the ball is stuck for 5 seconds
 
 #coordinates
 MY_TEAM = 0
@@ -26,6 +30,32 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+
+class Received_Image(object):
+    def __init__(self, resolution, colorChannels):
+        self.resolution = resolution
+        self.colorChannels = colorChannels
+        # need to initialize the matrix at timestep 0
+        self.ImageBuffer = np.zeros((resolution[1], resolution[0], colorChannels)) # rows, columns, colorchannels
+    def update_image(self, received_parts):
+        self.received_parts = received_parts
+        for i in range(0,len(received_parts)):
+           dec_msg = base64.b64decode(self.received_parts[i].b64, '-_') # decode the base64 message
+           np_msg = np.fromstring(dec_msg, dtype=np.uint8) # convert byte array to numpy array
+           reshaped_msg = np_msg.reshape((self.received_parts[i].height, self.received_parts[i].width, 3))
+           for j in range(0, self.received_parts[i].height): # y axis
+               for k in range(0, self.received_parts[i].width): # x axis
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
+    
+class SubImage(object):
+    def __init__(self, x, y, width, height, b64):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.b64 = b64
         
 class Frame(object):
     def __init__(self):
@@ -60,7 +90,10 @@ class Component(ApplicationSession):
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
+            self.resolution = info['resolution']
+            self.colorChannels = 3
             self.end_of_frame = False
+            self.image = Received_Image(self.resolution, self.colorChannels)
             print("Initializing variables...")
             return
 ##############################################################################
@@ -98,6 +131,7 @@ class Component(ApplicationSession):
         
         # initiate empty frame
         received_frame = Frame()
+        received_subimages = []
         
         if 'time' in f:
             received_frame.time = f['time']
@@ -107,6 +141,14 @@ class Component(ApplicationSession):
             received_frame.reset_reason = f['reset_reason']
         if 'subimages' in f:
             received_frame.subimages = f['subimages']
+            # Comment the next lines if you don't need to use the image information
+            for s in received_frame.subimages:
+                received_subimages.append(SubImage(s['x'],
+                                                   s['y'],
+                                                   s['w'],
+                                                   s['h'],
+                                                   s['base64'].encode('utf8')))   
+            self.image.update_image(received_subimages)
         if 'coordinates' in f:
             received_frame.coordinates = f['coordinates']            
         if 'EOF' in f:
@@ -117,19 +159,24 @@ class Component(ApplicationSession):
         #print(received_frame.reset_reason)
         #print(self.end_of_frame)
         
-        # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-        # Available after the 5th event received...
-        #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])
-        #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-        #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-        #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-        #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-        #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-        #print(received_frame.coordinates[BALL][X])
-        #print(received_frame.coordinates[BALL][Y])
-        
         if (self.end_of_frame):
             #print("end of frame")
+
+            # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
+            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
+            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
+            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
+            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
+            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
+            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
+            #print(received_frame.coordinates[OP_TEAM][0][X])
+            #print(received_frame.coordinates[OP_TEAM][0][Y])
+            #print(received_frame.coordinates[OP_TEAM][0][TH])        
+            #print(received_frame.coordinates[BALL][X])
+            #print(received_frame.coordinates[BALL][Y])
+            
+            # To get the image at the end of each frame use the variable:
+            # self.image.ImageBuffer
 
 ##############################################################################
             #(virtual update() in random_walk.cpp)
@@ -159,7 +206,6 @@ class Component(ApplicationSession):
         print("disconnected")
         if reactor.running:
             reactor.stop()
-
 
 if __name__ == '__main__':
     
