@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/python3
 
 from __future__ import print_function
 
@@ -105,7 +105,7 @@ class Component(ApplicationSession):
         else:
             print("Got the game info successfully")
             try:
-                self.sub = yield self.subscribe(self.on_event, args.key.decode('unicode-escape'))
+                self.sub = yield self.subscribe(self.on_event, args.key)
                 print("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
                 print("Error: {}".format(e2))
@@ -228,12 +228,12 @@ if __name__ == '__main__':
     ai_realm = args.realm
     
     # create a Wamp session object
-    session = Component(ComponentConfig(ai_realm.decode('unicode-escape'), {}))
+    session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
     
     # use Wamp-over-rawsocket
-    runner = ApplicationRunner(ai_sv.decode('unicode-escape'), ai_realm.decode('unicode-escape'), serializers=[serializer])
+    runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
     
     runner.run(session, auto_reconnect=True)

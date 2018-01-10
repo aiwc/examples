@@ -9,7 +9,9 @@ A python implementation for the random walk example described in: [here](https:/
 
 ## Requirements
 
-For versions <= 8.6.1, Webots will require Python 2.7.
+Webots >= 8.6.2, Python 3.
+
+Obs: For versions <= 8.6.1, Webots will require Python 2.7.
 
 Other requirements: [autobahn, twisted](http://autobahn.readthedocs.io/en/latest/installation.html), u-msgpack-python, numpy, base64
 
@@ -46,7 +48,7 @@ which python
 ```
 
 The new line will be : #!PATH
-For example: #!/usr/bin/python
+For example: #!/usr/bin/python3
 
 Give permission to execute random_walk_py with the following command:
 
@@ -54,9 +56,9 @@ Give permission to execute random_walk_py with the following command:
 chmod +x random_walk_py.py
 ```
 
-## Are you using Python 3?
+## Are you using Python 2?
 
-If the answer is yes you should remove the decode functions from the python program. Just removing them will adapt them to Python 3.
+If the answer is yes you should add the decode functions to the python program.
 
 # random_walk_py (Korean)
 
