@@ -13,6 +13,8 @@ import argparse
 import random
 import math
 
+import pickle
+
 import base64
 import numpy as np
 
@@ -99,17 +101,17 @@ class Component(ApplicationSession):
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.D = [] # Replay Memory 
-            self.update = 200 # Update Target Network
+            self.update = 100 # Update Target Network
             self.epsilon = 1.0 # Initial epsilon value 
             self.final_epsilon = 0.05 # Final epsilon value
             self.dec_epsilon = 0.05 # Decrease rate of epsilon for every generation
-            self.step_epsilon = 15000 # Number of iterations for every generation
-            self.observation_steps = 5000 # Number of iterations to observe before training every generation
-            self.save_every_steps = 10000 # Save checkpoint
+            self.step_epsilon = 9000 # Number of iterations for every generation
+            self.observation_steps = 1000 # Number of iterations to observe before training every generation
+            self.save_every_steps = 2500 # Save checkpoint
             self.num_actions = 5 # Number of possible possible actions
             self._frame = 0 
             self._iterations = 0
-            self.minibatch_size = 32
+            self.minibatch_size = 64
             self.gamma = 0.99
             self.sqerror = 100 # Initial sqerror value
             self.Q = NeuralNetwork(None, False, False)
@@ -221,7 +223,7 @@ class Component(ApplicationSession):
             wheels = []
 
             # Reward
-            if distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])<0.25:
+            if distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])<0.3:
                 reward = 1
             else:
                 reward = 0
@@ -238,8 +240,8 @@ class Component(ApplicationSession):
             position = [received_frame.coordinates[MY_TEAM][0][X]/1.25, received_frame.coordinates[MY_TEAM][0][Y]/0.9, received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi),
                         received_frame.coordinates[BALL][X]/1.25, received_frame.coordinates[BALL][Y]/0.9]
 
-            #print(reward)
-            #print(position)
+            print(reward)
+            print(position)
 
             # Action
 
@@ -267,7 +269,7 @@ class Component(ApplicationSession):
                 batch_phy_ = np.zeros((self.minibatch_size, 5)) # depends on what is your input state
                 for i in range(self.minibatch_size):
                     index = np.random.randint(len(self.D)-1) # Sample a random index from the replay memory
-                    a[i] = [0 if i !=self.D[index][1] else 1 for i in range(self.num_actions)]
+                    a[i] = [0 if j !=self.D[index][1] else 1 for j in range(self.num_actions)]
                     r[i] = self.D[index][2]
                     batch_phy[i] = self.D[index][0].reshape((1,5)) # depends on what is your input state
                     batch_phy_[i] = self.D[index+1][0].reshape((1,5)) # depends on what is your input state
@@ -295,6 +297,8 @@ class Component(ApplicationSession):
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
                 #save your data
+                with open(args.datapath + '/trainingset.txt', 'wb') as ts:
+                    pickle.dump(self.D, ts)
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()

@@ -15,7 +15,7 @@ class NeuralNetwork:
 		self.frame_res = 5     # Resolution of the input
 		self.nframes = 1       # Number of frames/channels of the input
 		NumberOfActions = 5    # Number of possible actions
-		lr = 1e-6	       # Learning Rate		
+		lr = 1e-5	       # Learning Rate		
 		
 		# Placeholders for the input variables
 		self.sess = tf.InteractiveSession()
