@@ -102,7 +102,7 @@ class Component(ApplicationSession):
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
             self.resolution = info['resolution']
-            self.colorChannels = 3 # nf in dqn_main.py
+            self.colorChannels = 3 # nf
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.D = [] # Replay Memory 
@@ -110,16 +110,16 @@ class Component(ApplicationSession):
             self.epsilon = 1.0 # Initial epsilon value 
             self.final_epsilon = 0.05 # Final epsilon value
             self.dec_epsilon = 0.05 # Decrease rate of epsilon for every generation
-            self.step_epsilon = 9000 # Number of iterations for every generation
-            self.observation_steps = 1000 # Number of iterations to observe before training every generation
-            self.save_every_steps = 2500 # Save checkpoint
+            self.step_epsilon = 17000 # Number of iterations for every generation
+            self.observation_steps = 3000 # Number of iterations to observe before training every generation
+            self.save_every_steps = 5000 # Save checkpoint
             self.num_actions = 5 # Number of possible possible actions
             self._frame = 0 
             self._iterations = 0
             self.minibatch_size = 64
             self.gamma = 0.99
             self.sqerror = 100 # Initial sqerror value
-            self.Q = NeuralNetwork(None, False, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
+            self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
             self.Q_ = NeuralNetwork(self.Q, False, True)   
             print("Initializing variables...")
             return
@@ -228,8 +228,8 @@ class Component(ApplicationSession):
             wheels = []
 
             # Reward
-            if distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])<0.3:
-                reward = 1-(distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])*3)
+            if distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])<0.4:
+                reward = 1-(distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])*2.5)
             else:
                 reward = 0
 
@@ -246,7 +246,6 @@ class Component(ApplicationSession):
                         received_frame.coordinates[BALL][X]/1.25, received_frame.coordinates[BALL][Y]/0.9]
 
             print(reward)
-            print(position)
 
             # Action
 

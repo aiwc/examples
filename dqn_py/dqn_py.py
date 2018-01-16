@@ -223,9 +223,6 @@ class Component(ApplicationSession):
 
             # Action
 
-            #if np.random.rand() < self.epsilon:
-            #    action = random.randint(0,4)
-            #else:
             action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
 
             print(action)

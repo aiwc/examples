@@ -25,14 +25,14 @@ class NeuralNetwork:
 
 		# Fully-connected layer 1
 		input_f1 = self.phy
-		fc1_num_neurons = 64
+		fc1_num_neurons = 256
 		self.W_fc1 = tf.Variable(tf.truncated_normal([self.frame_res*self.nframes, fc1_num_neurons], stddev=0.01), name="W_fc1")
 		self.b_fc1 = tf.Variable(tf.constant(0.01, shape=[fc1_num_neurons]), name="b_fc1")
 		self.input_fc1_flat = tf.reshape(input_f1, [-1, self.frame_res*self.nframes])
 		self.out_fc1 = tf.nn.relu(tf.matmul(self.input_fc1_flat, self.W_fc1) + self.b_fc1)
         
 		# Fully-connected layer 2
-		fc2_num_neurons = 64
+		fc2_num_neurons = 256
 		self.W_fc2 = tf.Variable(tf.truncated_normal([fc1_num_neurons, fc2_num_neurons], stddev=0.01), name="W_fc2")
 		self.b_fc2 = tf.Variable(tf.constant(0.01, shape=[fc2_num_neurons]), name="b_fc2")
 		self.out_fc2 = tf.nn.relu(tf.matmul(self.out_fc1, self.W_fc2) + self.b_fc2)
