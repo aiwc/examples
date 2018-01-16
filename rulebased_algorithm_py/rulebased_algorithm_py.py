@@ -133,12 +133,6 @@ class Component(ApplicationSession):
     def get_coord(self, received_frame):
         self.cur_ball = received_frame.coordinates[BALL]
         self.cur_posture = received_frame.coordinates[MY_TEAM]
-        #self.cur_ball[X] = received_frame.coordinates[BALL][X]
-        #self.cur_ball[Y] = received_frame.coordinates[BALL][Y]
-        #for i in range(self.number_of_robots):
-        #    self.cur_posture[i][X] = received_frame.coordinates[MY_TEAM][i][X]
-        #    self.cur_posture[i][Y] = received_frame.coordinates[MY_TEAM][i][Y]
-        #    self.cur_posture[i][TH] = received_frame.coordinates[MY_TEAM][i][TH]
             
     def find_closest_robot(self):
         min_idx = 0
