@@ -70,7 +70,7 @@ class Frame(object):
 
 class Component(ApplicationSession):
     """
-    AI Base + Random Walk
+    AI Base + Rule Based Algorithm
     """ 
 
     def __init__(self, config):
@@ -206,7 +206,7 @@ class Component(ApplicationSession):
         
     @inlineCallbacks
     def on_event(self, f):        
-        print("event received")
+        #print("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):

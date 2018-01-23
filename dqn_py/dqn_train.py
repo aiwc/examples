@@ -16,6 +16,7 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 import argparse
 import random
 import math
+import os
 
 import base64
 import numpy as np
@@ -40,7 +41,7 @@ Y = 1
 TH = 2
 
 #path to your checkpoint
-CHECKPOINT = "/home/aiwc/Desktop/test_world/examples/dqn_py/dqn.ckpt"
+CHECKPOINT = os.path.join(os.path.dirname(__file__), 'dqn.ckpt')
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -110,8 +111,8 @@ class Component(ApplicationSession):
             self.epsilon = 1.0 # Initial epsilon value 
             self.final_epsilon = 0.05 # Final epsilon value
             self.dec_epsilon = 0.05 # Decrease rate of epsilon for every generation
-            self.step_epsilon = 17000 # Number of iterations for every generation
-            self.observation_steps = 3000 # Number of iterations to observe before training every generation
+            self.step_epsilon = 20000 # Number of iterations for every generation
+            self.observation_steps = 5000 # Number of iterations to observe before training every generation
             self.save_every_steps = 5000 # Save checkpoint
             self.num_actions = 5 # Number of possible possible actions
             self._frame = 0 
@@ -119,8 +120,9 @@ class Component(ApplicationSession):
             self.minibatch_size = 64
             self.gamma = 0.99
             self.sqerror = 100 # Initial sqerror value
-            self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
-            self.Q_ = NeuralNetwork(self.Q, False, True)   
+            self.Q = NeuralNetwork(None, False, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
+            self.Q_ = NeuralNetwork(self.Q, False, True)
+            self.wheels = [0 for _ in range(10)]   
             print("Initializing variables...")
             return
 ##############################################################################
@@ -156,17 +158,27 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
 
-        def set_action(action_number):
+        def set_action(robot_id, action_number):
             if action_number == 0:
-                return [0.8, 0.8, 0, 0, 0, 0, 0, 0, 0 ,0] # Go Forward with fixed velocity
+                self.wheels[2*robot_id] = 0.7
+                self.wheels[2*robot_id + 1] = 0.7
+                # Go Forward with fixed velocity
             elif action_number == 1:
-                return [-0.8, 0.8, 0, 0, 0, 0, 0, 0, 0 ,0] # Turn Left with fixed velocity
+                self.wheels[2*robot_id] = -0.7
+                self.wheels[2*robot_id + 1] = 0.7
+                # Spin Left with fixed velocity
             elif action_number == 2:
-                return [0.8, -0.8, 0, 0, 0, 0, 0, 0, 0 ,0] # Turn right with fixed velocity
+                self.wheels[2*robot_id] = 0.7
+                self.wheels[2*robot_id + 1] = -0.7
+                # Spin right with fixed velocity
             elif action_number == 3:
-                return [-0.8, -0.8, 0, 0, 0, 0, 0, 0, 0 ,0] # Go Backward with fixed velocity
+                self.wheels[2*robot_id] = -0.7
+                self.wheels[2*robot_id + 1] = -0.7
+                # Go Backward with fixed velocity
             elif action_number == 4:
-                return [0, 0, 0, 0, 0, 0, 0, 0, 0 ,0] # Do not move
+                self.wheels[2*robot_id] = 0
+                self.wheels[2*robot_id + 1] = 0
+                # Do not move
         
         def distance(x1, x2, y1, y2):
             return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
@@ -218,20 +230,15 @@ class Component(ApplicationSession):
             #print(received_frame.coordinates[BALL][Y])
 	    
             self._frame += 1        
-            print(self._frame)
 
             # To get the image at the end of each frame use the variable:
             #print(self.image.ImageBuffer)
 
 ##############################################################################
-            #(virtual update() in random_walk.cpp)
-            wheels = []
+            #(virtual update())
 
             # Reward
-            if distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])<0.4:
-                reward = 1-(distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])*2.5)
-            else:
-                reward = 0
+            reward = math.exp(-10*(distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])/4.1))
 
             # State
 
@@ -242,21 +249,19 @@ class Component(ApplicationSession):
             #final_img = np.array(resized_img)
 
             # Example: using the normalized coordinates for robot 0 and ball
-            position = [received_frame.coordinates[MY_TEAM][0][X]/1.25, received_frame.coordinates[MY_TEAM][0][Y]/0.9, received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi),
-                        received_frame.coordinates[BALL][X]/1.25, received_frame.coordinates[BALL][Y]/0.9]
-
-            print(reward)
+            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2), 
+                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2), 
+                        round(received_frame.coordinates[BALL][Y]/1.35, 2)]
 
             # Action
-
             if np.random.rand() < self.epsilon:
                 action = random.randint(0,4)
             else:
                 action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
 
             # Set robot wheels
-            wheels = set_action(action)
-            set_wheel(self, wheels)
+            set_action(0, action)
+            set_wheel(self, self.wheels)
 
             # Update Replay Memory
             self.D.append([np.array(position), action, reward])

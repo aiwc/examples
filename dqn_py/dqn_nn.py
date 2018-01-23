@@ -20,7 +20,7 @@ class NeuralNetwork:
 		# Placeholders for the input variables
 		self.sess = tf.InteractiveSession()
 		self.phy = tf.placeholder(tf.float32, shape=[None, self.frame_res*self.nframes]) # Flattened last nf frames of the game
-		self.y = tf.placeholder(tf.float32, shape=[None, 1])									# 
+		self.y = tf.placeholder(tf.float32, shape=[None, 1]) 
 		self.action = tf.placeholder(tf.float32, shape=[None, NumberOfActions])
 
 		# Fully-connected layer 1
@@ -58,7 +58,7 @@ class NeuralNetwork:
 			self.update_op_wfc1 = self.W_fc1.assign(self.update_ph_wfc1)            
 			self.update_op_wfc2 = self.W_fc2.assign(self.update_ph_wfc2)
 			self.update_op_bfc1 = self.b_fc1.assign(self.update_ph_bfc1)
-			self.update_op_bfc2 = self.b_fc1.assign(self.update_ph_bfc2)
+			self.update_op_bfc2 = self.b_fc2.assign(self.update_ph_bfc2)
 			self.update_op_wol1 = self.W_ol1.assign(self.update_ph_wol1)
 			self.update_op_bol1 = self.b_ol1.assign(self.update_ph_bol1)
 			
