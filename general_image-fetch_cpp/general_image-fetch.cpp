@@ -1,3 +1,9 @@
+// File:              general_image-fetch.cpp
+// Date:              Jan. 24, 2018
+// Description:       An example of image fetch
+// Author(s):         Inbae Jeong, Chansol Hong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
@@ -24,6 +30,7 @@ public:
 private:
   void init()
   {
+    // initialize variables to store image
     img_bgr.clear();
     img_bgr.resize(info.resolution[X] * info.resolution[Y] * BYTES_PER_PIXEL);
     cv_img = cv::Mat(info.resolution[Y], info.resolution[X], CV_8UC3, &img_bgr[0]);
@@ -39,9 +46,12 @@ private:
       return &img[(info.resolution[X] * y + x) * BYTES_PER_PIXEL];
     };
 
+    // fetch received subimages and construct a new frame
+    // subimages are small regions on the new image
+    // where some changes occurred since the last frame
     for(const auto& sub : f.subimages) {
       const auto decoded = cppcodec::base64_rfc4648::decode(sub.base64);
-      assert(decoded.size() == (sub.x * sub.y * BYTES_PER_PIXEL));
+      assert(decoded.size() == (sub.w * sub.h * BYTES_PER_PIXEL));
 
       auto* decoded_ptr = &decoded[0];
 
@@ -53,6 +63,7 @@ private:
       }
     }
 
+    // now img_bgr contains the updated frame
     cv::imshow("Frame", cv_img);
     cv::waitKey(1);
 

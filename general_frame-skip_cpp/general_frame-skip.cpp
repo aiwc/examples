@@ -1,3 +1,9 @@
+// File:              general_frame-skip.cpp
+// Date:              Jan. 24, 2018
+// Description:       An example of skipping frames for heavy operations
+// Author(s):         Inbae Jeong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
@@ -22,7 +28,7 @@ public:
 private:
   void init()
   {
-    behavior_thread = std::thread([&]() { frame_skipper(); });
+    behavior_thread = std::thread([&]() { frame_skip(); });
   }
 
   void update(const aiwc::frame& f)
@@ -33,7 +39,7 @@ private:
     frames.cv.notify_one();
   }
 
-  void frame_skipper()
+  void frame_skip()
   {
     for(;;) {
       std::unique_lock<std::mutex> lck(frames.m);
@@ -65,18 +71,14 @@ private:
     // heavy operations
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    std::mt19937 rng{boost::random_device{}()};
-    std::uniform_real_distribution<double> dist(-info.max_linear_velocity, info.max_linear_velocity);
-
-    std::array<double, 10> wheels;
-    for(auto& s : wheels) {
-      s = dist(rng);
-    }
-    set_wheel(wheels);
+    // now send data to the server.
+    std::cout << "Long operation ended." << std::endl;
   }
 
   void finish()
   {
+    behavior_thread.join();
+    
     // You have less than 30 seconds before it's killed.
     std::ofstream ofs(datapath + "/result.txt");
     ofs << "my_result" << std::endl;

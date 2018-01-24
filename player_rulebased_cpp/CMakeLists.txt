@@ -1,28 +1,24 @@
 cmake_minimum_required(VERSION 3.1)
-project(opencv)
+project(player_rulebased)
 
 find_package(Threads REQUIRED)
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
+find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
 
-find_package(OpenCV REQUIRED COMPONENTS core highgui)
-
-add_executable(opencv opencv.cpp ../common/ai_base.cpp)
+add_executable(player_rulebased player_rulebased.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
-  ../extlibs/cppcodec
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(opencv
+target_link_libraries(player_rulebased
   Threads::Threads
   ${Boost_LIBRARIES}
-  ${OpenCV_LIBS}
   )
-set_property(TARGET opencv PROPERTY CXX_STANDARD 14)
+set_property(TARGET player_rulebased PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

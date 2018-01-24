@@ -1,24 +1,29 @@
 cmake_minimum_required(VERSION 3.1)
-project(rulebased_algorithm)
+project(general_image-fetch)
 
 find_package(Threads REQUIRED)
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
+find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
 
-add_executable(rulebased_algorithm rulebased_algorithm.cpp ../common/ai_base.cpp)
+set(BUILD_SHARED_LIBS OFF)
+find_package(OpenCV REQUIRED COMPONENTS core highgui)
+
+add_executable(general_image-fetch general_image-fetch.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
+  ../extlibs/cppcodec
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(rulebased_algorithm
+target_link_libraries(general_image-fetch
   Threads::Threads
   ${Boost_LIBRARIES}
+  ${OpenCV_LIBS}
   )
-set_property(TARGET rulebased_algorithm PROPERTY CXX_STANDARD 14)
+set_property(TARGET general_image-fetch PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

@@ -1,7 +1,14 @@
+// File:              player_rulebased.cpp
+// Date:              Jan. 24, 2018
+// Description:       AI soccer algorithm that controls robots based on some rules
+// Author(s):         Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -43,7 +50,13 @@ private:
   void velocity(std::size_t id, double l, double r)
   {
     if(l > info.max_linear_velocity || l < -info.max_linear_velocity) {
-      const double ratio = l / info.max_linear_velocity;
+      const double ratio = abs(l) / info.max_linear_velocity;
+      l /= ratio;
+      r /= ratio;
+    }
+
+    if(r > info.max_linear_velocity || r < -info.max_linear_velocity) {
+      const double ratio = abs(r) / info.max_linear_velocity;
       l /= ratio;
       r /= ratio;
     }
@@ -53,9 +66,9 @@ private:
 
   void position(std::size_t id, double x, double y, double damping = 0.35)
   {
-    const double mult_lin = 2;
+    const double mult_lin = 2.5;
     const double mult_ang = 0.2;
-    
+
     const double dx = x - cur_posture[id][X];
     const double dy = y - cur_posture[id][Y];
 
@@ -94,7 +107,7 @@ private:
 	ka = 0.1;
       }
       ka *= 4;
-      velocity(id, 
+      velocity(id,
 	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) - mult_ang * ka * d_th),
 	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) + mult_ang * ka * d_th));
     }
@@ -106,12 +119,12 @@ private:
   }
 
   void goalie(std::size_t id)
-  {    
-	const double x = -info.field[X] / 2 + info.robot_size / 2 + 0.05;
+  {
+	const double x = -info.field[X] / 2 + info.robot_radius + 0.05;
     const double y = std::max(std::min(cur_ball[Y],
-				       info.goal[Y] / 2 - info.robot_size / 2),
-			      -info.goal[Y] / 2 + info.robot_size / 2); 
-    // std::cout << "Target Pos: " << x << "," << y << std::endl;
+				       info.goal[Y] / 2 - info.robot_radius),
+			      -info.goal[Y] / 2 + info.robot_radius);
+    //std::cout << "Target Pos: " << x << "," << y << std::endl;
     position(id, x, y);
   }
 
@@ -120,50 +133,50 @@ private:
     const double ox = 0.066;
     const double oy = 0.044;
 
-    const double min_x = -info.field[X]/2 + info.robot_size/2 + 0.05;
+    const double min_x = -info.field[X]/2 + info.robot_radius + 0.05;
 
     // If ball is on offense
     if(cur_ball[X] > 0) {
 	 // If ball is in the upper part of the field (y>0)
-	 if(cur_ball[Y] > 0){	  
+	 if(cur_ball[Y] > 0){
             position(id, (cur_ball[X]-1.1)/2, (std::min(cur_ball[Y],0.65))+offset_y);
 	 }
 	  // If ball is in the lower part of the field (y<0)
       else {
 	    position(id, (cur_ball[X]-1.1)/2, (std::max(cur_ball[Y],-0.65))+offset_y);
-      }		
+      }
     }
     else {
       // If robot is in front of the ball
 	  if(cur_posture[id][X] > cur_ball[X] - ox) {
 		 // if this defender is the nearest defender from the ball
-		 if (id == idx) {			 
+		 if (id == idx) {
 				position(id,
 						(cur_ball[X] - ox),
 						(cur_posture[id][Y] < 0)?(cur_ball[Y] + oy):(cur_ball[Y] - oy));
 		 }
 	     else {
-           position(id, 
-				   std::max((cur_ball[X]-0.01),min_x), 
+           position(id,
+				   std::max((cur_ball[X]-0.01),min_x),
 				   (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.01):(cur_posture[id][Y]-0.01));
-		 }	 
+		 }
       }
 	  // If robot is behind the ball
       else {
-          if (id==idx) {   
+          if (id==idx) {
                position(id,
-				   cur_ball[X], 
+				   cur_ball[X],
 				   (cur_posture[id][Y] < 0)?(cur_ball[Y]):(cur_ball[Y]));
 		 }
 	     else {
-		   position(id, 
+		   position(id,
 				   std::max((cur_ball[X]-0.01),min_x),
 				   (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.01):(cur_posture[id][Y]-0.01));
-		 }	 
+		 }
       }
     }
 
-  }	
+  }
 
   void midfielder(std::size_t id, std::size_t idx, double offset_y)
   {
@@ -172,11 +185,9 @@ private:
 	const double threshold = 0.7;
 
     const double ball_dist = dist(cur_posture[id][X], cur_posture[id][Y], cur_ball[X], cur_ball[Y]);
-    const double goal_dist = dist(cur_posture[id][X], cur_posture[id][Y], info.field[X] / 2, 0);	
-    
-	if (dist(cur_ball[X], cur_ball[Y], cur_posture[id][X], cur_posture[id][Y]) < 0.1 && ((std::abs(cur_posture[id][Y]) > 0.7) || ((std::abs(cur_posture[id][X]) > 0.9) && (std::abs(cur_posture[id][Y]) > info.goal[Y]/2)))) //Spin!
-      velocity(id, 1.2, -1.2);
-	else if (id==idx) {
+    const double goal_dist = dist(cur_posture[id][X], cur_posture[id][Y], info.field[X] / 2, 0);
+
+    if (id==idx) {
       if(ball_dist < 0.022) {
 		// if near the ball and near the opposite team goal
 		if(goal_dist < 0.66) {
@@ -205,10 +216,10 @@ private:
 		  position(id, cur_ball[X], cur_ball[Y]);
 	    }
 	 }
-	}  
+	}
 	else {
 		position(id, std::max(cur_ball[X]-0.05,-0.5), cur_ball[Y]+offset_y);
-	}	
+	}
 
   }
 
@@ -226,7 +237,7 @@ private:
     }
     return min_idx;
   }
-  
+
   auto get_coord(const aiwc::frame& f)
   {
     decltype(cur_posture) cur;
@@ -265,7 +276,7 @@ private:
 	midfielder(0, idx, -0.15);
 
     prev_ball = cur_ball;
-    previous_frame = f;   
+    previous_frame = f;
 
     std::array<double, 10> ws;
 
@@ -280,7 +291,6 @@ private:
     //   std::cout << w << ", "; //print wheels
     // }
     // std::cout << std::endl;
-    
   }
 
   void finish()
@@ -311,9 +321,9 @@ private: // member variable
   std::array<std::array<double, 3>, 5> cur_posture;
   std::array<double, 2> prev_ball;
   std::array<double, 2> cur_ball;
-  
+
   std::array<std::array<double, 2>, 5> robot_wheels;
-  
+
   std::vector<aiwc::frame> frames;
 };
 

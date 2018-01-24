@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(reporter-skeleton)
+project(commentator_skeleton)
 
 find_package(Threads REQUIRED)
 
@@ -7,18 +7,18 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
 
-add_executable(reporter-skeleton reporter-skeleton.cpp ../common/ai_base.cpp)
+add_executable(commentator_skeleton commentator_skeleton.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(reporter-skeleton
+target_link_libraries(commentator_skeleton
   Threads::Threads
   ${Boost_LIBRARIES}
   )
-set_property(TARGET reporter-skeleton PROPERTY CXX_STANDARD 14)
+set_property(TARGET commentator_skeleton PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

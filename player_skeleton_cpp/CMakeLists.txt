@@ -1,24 +1,24 @@
 cmake_minimum_required(VERSION 3.1)
-project(frame_skipper)
+project(player_skeleton)
 
 find_package(Threads REQUIRED)
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
+find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
 
-add_executable(frame_skipper frame_skipper.cpp ../common/ai_base.cpp)
+add_executable(player_skeleton player_skeleton.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(frame_skipper
+target_link_libraries(player_skeleton
   Threads::Threads
   ${Boost_LIBRARIES}
   )
-set_property(TARGET frame_skipper PROPERTY CXX_STANDARD 14)
+set_property(TARGET player_skeleton PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

@@ -1,3 +1,9 @@
+// File:              player_skeleton.cpp
+// Date:              Jan. 24, 2018
+// Description:       A simple AI soccer algorithm that only makes robots move forward
+// Author(s):         Inbae Jeong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>

@@ -1,3 +1,9 @@
+// File:              ai_base.hpp
+// Date:              Jan. 24, 2018
+// Description:       AI World Cup AI backbone header
+// Author(s):         Inbae Jeong, Chansol Hong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #ifndef H_AI_BASE_HPP
 #define H_AI_BASE_HPP
 #pragma once
@@ -41,10 +47,13 @@ namespace aiwc {
   {
     std::array<double, 2> field;        // [x, y]
     std::array<double, 2> goal;         // [x, y]
+    std::array<double, 2> goal_area;    // [x, y]
     std::array<double, 2> penalty_area; // [x, y]
 
     double ball_radius;         // m
     double robot_size;          // m
+    double robot_height;        // m
+    double robot_radius;        // m
     double axle_length;         // m
     double max_linear_velocity; // m/s
 
