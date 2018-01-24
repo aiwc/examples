@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-# File: player_random-walk.py
-# Date: Jan. 24, 2018
-# Description: AI soccer program that control robots based on random moves
+# File: commentator_skeleton.py
+# Date: Jan. 23, 2018
+# Description: AI commentator skeleton algorithm
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
 # Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
@@ -73,7 +73,7 @@ class Frame(object):
 
 class Component(ApplicationSession):
     """
-    AI Base + Random Walk
+    AI Base + Commentator Skeleton
     """ 
 
     def __init__(self, config):
@@ -89,13 +89,13 @@ class Component(ApplicationSession):
 
 ##############################################################################
         def init_variables(self, info):
-            # Here you have the information of the game (virtual init() in random_walk.cpp)
+            # Here you have the information of the game (virtual init())
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
             #       robot_height, robot_radius, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
             # self.game_time = info['game_time']
             # self.field = info['field']
-            self.max_linear_velocity = info['max_linear_velocity']
+            self.field = info['field']
             self.resolution = info['resolution']
             self.colorChannels = 3
             self.end_of_frame = False
@@ -131,14 +131,14 @@ class Component(ApplicationSession):
         #print("event received")
 
         @inlineCallbacks
-        def set_wheel(self, robot_wheels):
-            yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
+        def set_comment(self, commentary):
+            yield self.call(u'aiwc.commentate', args.key, commentary)
             return
         
         # initiate empty frame
         received_frame = Frame()
-        received_subimages = []
-        
+        received_subimages = []        
+
         if 'time' in f:
             received_frame.time = f['time']
         if 'score' in f:
@@ -165,6 +165,11 @@ class Component(ApplicationSession):
         #print(received_frame.reset_reason)
         #print(self.end_of_frame)
         
+        if (received_frame.reset_reason == GAME_START):
+            set_comment(self, "Game has begun")
+        elif (received_frame.reset_reason == DEADLOCK):
+            set_comment(self, "Position is reset since no one touched the ball") 
+
         if (self.end_of_frame):
             #print("end of frame")
 
@@ -184,17 +189,23 @@ class Component(ApplicationSession):
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-##############################################################################
-            #(virtual update() in random_walk.cpp)
-            wheels = [random.uniform(-self.max_linear_velocity,self.max_linear_velocity) for _ in range(10)]
-            set_wheel(self, wheels)
-##############################################################################            
-          
-            if(received_frame.reset_reason == GAME_END):
+            if (received_frame.coordinates[BALL][X] >= (self.field[X] / 2)):
+                set_comment(self, "A Team scored!!")
+            elif (received_frame.coordinates[BALL][X] <= (-self.field[X] / 2)):
+                set_comment(self, "B Team scored!!")
+
+            if (received_frame.reset_reason == GAME_END):
                 print("Game ended.")
 
+                if (received_frame.score[0] > received_frame.score[1]):
+                    set_comment(self, "A Team won")
+                elif (received_frame.score[0] > received_frame.score[1]):
+                    set_comment(self, "B Team won")
+                else:
+                    set_comment(self, "The game ended in a draw")
+
 ##############################################################################
-                #(virtual finish() in random_walk.cpp)
+                #(virtual finish())
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
@@ -212,7 +223,6 @@ class Component(ApplicationSession):
         print("disconnected")
         if reactor.running:
             reactor.stop()
-
 
 if __name__ == '__main__':
     
