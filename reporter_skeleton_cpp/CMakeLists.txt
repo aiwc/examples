@@ -1,24 +1,24 @@
 cmake_minimum_required(VERSION 3.1)
-project(random_walk)
+project(reporter_skeleton)
 
 find_package(Threads REQUIRED)
 
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost REQUIRED COMPONENTS random regex system thread) # VC require regex, don't know why
+find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
 
-add_executable(random_walk random_walk.cpp ../common/ai_base.cpp)
+add_executable(reporter_skeleton reporter_skeleton.cpp ../common/ai_base.cpp)
 include_directories(
   ../common
   ../extlibs/autobahn-cpp
   ../extlibs/msgpack-c/include
   ${Boost_INCLUDE_DIRS}
   )
-target_link_libraries(random_walk
+target_link_libraries(reporter_skeleton
   Threads::Threads
   ${Boost_LIBRARIES}
   )
-set_property(TARGET random_walk PROPERTY CXX_STANDARD 14)
+set_property(TARGET reporter_skeleton PROPERTY CXX_STANDARD 14)
 
 if(WIN32)
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")

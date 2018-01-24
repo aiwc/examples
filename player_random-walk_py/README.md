@@ -1,4 +1,4 @@
-# random_walk_py (English)
+# player_random-walk (English)
 Random Walk example for the AI World Cup (Python)
 
 A python implementation for the random walk example described in: [here](https://github.com/aiwc/examples/tree/master/random_walk)
@@ -31,11 +31,11 @@ You will need [Pyinstaller](http://www.pyinstaller.org/) to create an executable
 # Install Pyinstaller using PIP
 pip install pyinstaller
 
-# In the random_walk_py directory run
-pyinstaller random_walk_py.py
+# In the player_random-walk directory run
+pyinstaller player_random-walk.py
 ```
 
-Use the executable generated in the directory /dist/random_walk_py as your TeamExecutable file using the *Webots(Windows)* API.
+Use the executable generated in the directory /dist/player_random-walk as your TeamExecutable file using the *Webots(Windows)* API.
 
 ## How to run this code using Linux?
 
@@ -43,11 +43,11 @@ Change the first line of the python code adding the path to your python environm
 
 Ex: #!usr/bin/python
 
-Use the path to the python code /examples/random_walk_py/random_walk_py.py as your TeamExecutable file using the *Webots(Linux)* API.
+Use the path to the python code /examples/player_random-walk/player_random-walk.py as your TeamExecutable file using the *Webots(Linux)* API.
 
-# random_walk_py (Korean)
+# player_random-walk (Korean)
 
-AI World Cup 을 위한 파이썬(Python) 랜덤 워크 예시 코드입니다. 
+AI World Cup 을 위한 파이썬(Python) 랜덤 워크 예시 코드입니다.
 
 ['이곳'](https://github.com/aiwc/examples/tree/master/random_walk)에서 파이썬으로 구현된 랜덤워크 코드를 볼 수 있습니다.
 
@@ -57,7 +57,7 @@ AI World Cup 을 위한 파이썬(Python) 랜덤 워크 예시 코드입니다.
 
 ## Requirements
 
-8.6.1 버전 이하의 Webots 에서는 파이썬 2.7. 버전이 사용되어야 합니다. 
+8.6.1 버전 이하의 Webots 에서는 파이썬 2.7. 버전이 사용되어야 합니다.
 
 그 외에 필요한 것들: [autobahn, twisted](http://autobahn.readthedocs.io/en/latest/installation.html)
 
@@ -76,8 +76,8 @@ executable(.exe 파일)을 생성하기 위해서는 [Pyinstaller](http://www.py
 # Install Pyinstaller using PIP
 pip install pyinstaller
 
-# In the random_walk_py directory run
-pyinstaller random_walk_py.py
+# In the player_random-walk directory run
+pyinstaller player_random-walk.py
 ```
 
-Team Executable 파일을 만들 때 Webots(Windows) API의 디렉토리dist/random_walk_py 에 생성되어있는 executable(.exe 파일)을 이용하세요. 
+Team Executable 파일을 만들 때 Webots(Windows) API의 디렉토리dist/player_random-walk 에 생성되어있는 executable(.exe 파일)을 이용하세요.

@@ -1,3 +1,9 @@
+// File:              reporter_skeleton.cpp
+// Date:              Jan. 24, 2018
+// Description:       A simple AI reporter
+// Author(s):         Inbae Jeong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
