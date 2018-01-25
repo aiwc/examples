@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
-# File: player_random-walk.py
-# Date: Jan. 24, 2018
-# Description: AI soccer program that control robots based on random moves
+# File: player_deep-learning-play.py
+# Date: Jan. 23, 2018
+# Description: Deep Q Learning example play code
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
 # Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
@@ -17,9 +17,14 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 import argparse
 import random
+import math
+import os
 
 import base64
 import numpy as np
+
+#from PIL import Image
+from dqn_nn import NeuralNetwork
 
 #reset_reason
 NONE = 0
@@ -36,6 +41,9 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+
+#path to your checkpoint
+CHECKPOINT = os.path.join(os.path.dirname(__file__), 'dqn.ckpt')
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -54,7 +62,7 @@ class Received_Image(object):
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
-
+    
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
         self.x = x
@@ -73,7 +81,7 @@ class Frame(object):
 
 class Component(ApplicationSession):
     """
-    AI Base + Random Walk
+    AI Base + Deep Q Network example
     """ 
 
     def __init__(self, config):
@@ -91,15 +99,18 @@ class Component(ApplicationSession):
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
+            #       robot_height, robot radius, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
             self.resolution = info['resolution']
-            self.colorChannels = 3
+            self.colorChannels = 3 # nf in dqn_main.py
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
+            self._frame = 0 
+            self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
+            self.wheels = [0 for _ in range(10)]
             print("Initializing variables...")
             return
 ##############################################################################
@@ -134,7 +145,53 @@ class Component(ApplicationSession):
         def set_wheel(self, robot_wheels):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
-        
+
+        def set_action(robot_id, action_number):
+            if action_number == 0:
+                self.wheels[2*robot_id] = 0.75
+                self.wheels[2*robot_id + 1] = 0.75
+                # Go Forward with fixed velocity
+            elif action_number == 1:
+                self.wheels[2*robot_id] = 0.75
+                self.wheels[2*robot_id + 1] = 0.5
+                # Turn
+            elif action_number == 2:
+                self.wheels[2*robot_id] = 0.75
+                self.wheels[2*robot_id + 1] = 0.25
+                # Turn
+            elif action_number == 3:
+                self.wheels[2*robot_id] = 0.75
+                self.wheels[2*robot_id + 1] = 0
+                # Turn
+            elif action_number == 4:
+                self.wheels[2*robot_id] = 0.5
+                self.wheels[2*robot_id + 1] = 75
+                # Turn
+            elif action_number == 5:
+                self.wheels[2*robot_id] = 0.25
+                self.wheels[2*robot_id + 1] = 0.75
+                # Turn
+            elif action_number == 6:
+                self.wheels[2*robot_id] = 0
+                self.wheels[2*robot_id + 1] = 0.75
+                # Turn
+            elif action_number == 7:
+                self.wheels[2*robot_id] = -0.75
+                self.wheels[2*robot_id + 1] = -0.75
+                # Go Backward with fixed velocity
+            elif action_number == 8:
+                self.wheels[2*robot_id] = -0.1
+                self.wheels[2*robot_id + 1] = 0.1
+                # Spin
+            elif action_number == 9:
+                self.wheels[2*robot_id] = 0.1
+                self.wheels[2*robot_id + 1] = -0.1
+                # Spin
+            elif action_number == 10:
+                self.wheels[2*robot_id] = 0
+                self.wheels[2*robot_id + 1] = 0
+                # Do not move
+ 
         # initiate empty frame
         received_frame = Frame()
         received_subimages = []
@@ -153,7 +210,7 @@ class Component(ApplicationSession):
                                                    s['y'],
                                                    s['w'],
                                                    s['h'],
-                                                   s['base64'].encode('utf8')))
+                                                   s['base64'].encode('utf8')))   
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
             received_frame.coordinates = f['coordinates']            
@@ -180,16 +237,36 @@ class Component(ApplicationSession):
             #print(received_frame.coordinates[OP_TEAM][0][TH])        
             #print(received_frame.coordinates[BALL][X])
             #print(received_frame.coordinates[BALL][Y])
+	    
+            self._frame += 1        
 
             # To get the image at the end of each frame use the variable:
-            # self.image.ImageBuffer
+            #print(self.image.ImageBuffer)
 
 ##############################################################################
             #(virtual update() in random_walk.cpp)
-            wheels = [random.uniform(-self.max_linear_velocity,self.max_linear_velocity) for _ in range(10)]
-            set_wheel(self, wheels)
+
+            # State
+
+            # If you want to use the image as the input for your network
+            # You can use pillow: PIL.Image to get and resize the input frame as follows
+            #img = Image.fromarray((self.image.ImageBuffer/255).astype('uint8'), 'RGB') # Get normalized image as a PIL.Image object
+            #resized_img = img.resize((NEW_X,NEW_Y))
+            #final_img = np.array(resized_img)
+
+            # Example: using the normalized coordinates for robot 0 and ball
+            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35), round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi)),
+                        round(received_frame.coordinates[BALL][X]/2.05), round(received_frame.coordinates[BALL][Y]/1.35)]
+
+            # Action
+            action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
+
+            # Set robot wheels
+            set_action(0, action)
+            set_wheel(self, self.wheels)
+
 ##############################################################################            
-          
+
             if(received_frame.reset_reason == GAME_END):
                 print("Game ended.")
 
@@ -210,12 +287,11 @@ class Component(ApplicationSession):
             
             self.end_of_frame = False
 
-
+    
     def onDisconnect(self):
         print("disconnected")
         if reactor.running:
             reactor.stop()
-
 
 if __name__ == '__main__':
     
@@ -246,4 +322,4 @@ if __name__ == '__main__':
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
     
-    runner.run(session, auto_reconnect=True)
+    runner.run(session, auto_reconnect=False)
