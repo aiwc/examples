@@ -1,3 +1,9 @@
+// File:              ai_base.cpp
+// Date:              Jan. 24, 2018
+// Description:       AI World Cup AI backbone
+// Author(s):         Inbae Jeong, Chansol Hong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include <boost/asio.hpp> // need to be the first header to avoid winsock error in windows
 
 #include "ai_base.hpp"
@@ -89,8 +95,8 @@ namespace msgpack {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::game_info& v) const
         {
           enum {
-            FIELD, GOAL, PENALTY_AREA,
-            BALL_RADIUS, ROBOT_SIZE, AXLE_LENGTH, MAX_LIN_VEL,
+            FIELD, GOAL, PENALTY_AREA, GOAL_AREA,
+            BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, ROBOT_RADIUS, AXLE_LENGTH, MAX_LIN_VEL,
             RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
           };
 
@@ -100,8 +106,11 @@ namespace msgpack {
             m.find("field"),
             m.find("goal"),
             m.find("penalty_area"),
+            m.find("goal_area"),
             m.find("ball_radius"),
             m.find("robot_size"),
+            m.find("robot_height"),
+            m.find("robot_radius"),
             m.find("axle_length"),
             m.find("max_linear_velocity"),
             m.find("resolution"),
@@ -118,8 +127,11 @@ namespace msgpack {
           v = aiwc::game_info{its[FIELD]->second.as<decltype(aiwc::game_info::field)>(),
                               its[GOAL]->second.as<decltype(aiwc::game_info::goal)>(),
                               its[PENALTY_AREA]->second.as<decltype(aiwc::game_info::penalty_area)>(),
+                              its[GOAL_AREA]->second.as<decltype(aiwc::game_info::goal_area)>(),
                               its[BALL_RADIUS]->second.as<decltype(aiwc::game_info::ball_radius)>(),
                               its[ROBOT_SIZE]->second.as<decltype(aiwc::game_info::robot_size)>(),
+                              its[ROBOT_HEIGHT]->second.as<decltype(aiwc::game_info::robot_height)>(),
+                              its[ROBOT_RADIUS]->second.as<decltype(aiwc::game_info::robot_radius)>(),
                               its[AXLE_LENGTH]->second.as<decltype(aiwc::game_info::axle_length)>(),
                               its[MAX_LIN_VEL]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
                               its[RESOLUTION]->second.as<decltype(aiwc::game_info::resolution)>(),

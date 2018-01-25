@@ -1,3 +1,9 @@
+// File:              player_random-walk.cpp
+// Date:              Jan. 24, 2018
+// Description:       AI soccer algorithm that controls robots randomly
+// Author(s):         Inbae Jeong
+// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+
 #include "ai_base.hpp"
 
 #include <boost/lexical_cast.hpp>
