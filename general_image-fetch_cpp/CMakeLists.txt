@@ -7,7 +7,6 @@ set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost REQUIRED COMPONENTS regex system thread) # VC require regex, don't know why
 
-set(BUILD_SHARED_LIBS OFF)
 find_package(OpenCV REQUIRED COMPONENTS core highgui)
 
 add_executable(general_image-fetch general_image-fetch.cpp ../common/ai_base.cpp)
@@ -22,6 +21,7 @@ target_link_libraries(general_image-fetch
   Threads::Threads
   ${Boost_LIBRARIES}
   ${OpenCV_LIBS}
+  ${OpenCV_LIBRARIES}
   )
 set_property(TARGET general_image-fetch PROPERTY CXX_STANDARD 14)
 
