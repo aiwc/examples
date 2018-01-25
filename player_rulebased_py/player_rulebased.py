@@ -98,7 +98,7 @@ class Component(ApplicationSession):
             #       {rating, name}, axle_length, resolution, ball_radius
             # self.game_time = info['game_time']
             self.field = info['field']
-            self.robot_size = info['robot_size']
+            self.robot_size = 2*info['robot_radius']
             self.goal = info['goal']
             self.max_linear_velocity = info['max_linear_velocity']
             self.resolution = info['resolution']
@@ -384,7 +384,10 @@ class Component(ApplicationSession):
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
                 print("Unsubscribed...")
-                self.leave()
+                try:
+                    yield self.leave()
+                except Exception as e:
+                    print("Error: {}".format(e))
 ##############################################################################
             
             self.end_of_frame = False

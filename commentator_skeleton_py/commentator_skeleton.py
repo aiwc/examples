@@ -100,7 +100,7 @@ class Component(ApplicationSession):
             self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
-            print("Initializing variables...")
+            print("Initializing variables for commentator...")
             return
 ##############################################################################
             
@@ -109,7 +109,7 @@ class Component(ApplicationSession):
         except Exception as e:
             print("Error: {}".format(e))
         else:
-            print("Got the game info successfully")
+            print("Got the game info successfully (commentator)")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
                 print("Subscribed with subscription ID {}".format(self.sub.id))
@@ -123,7 +123,7 @@ class Component(ApplicationSession):
         except Exception as e:
             print("Error: {}".format(e))
         else:
-            print("I am ready for the game!")
+            print("I am the commentator for this game!")
             
             
     @inlineCallbacks
@@ -212,15 +212,18 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                print("Unsubscribed...")
-                self.leave()
+                print("Commentator Unsubscribed...")
+                try:
+                    yield self.leave()
+                except Exception as e:
+                    print("Error: {}".format(e))
 ##############################################################################
             
             self.end_of_frame = False
 
 
     def onDisconnect(self):
-        print("disconnected")
+        print("commentator disconnected")
         if reactor.running:
             reactor.stop()
 

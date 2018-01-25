@@ -112,7 +112,10 @@ class Component(ApplicationSession):
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
                 print("Unsubscribed...")
-                self.leave()
+                try:
+                    yield self.leave()
+                except Exception as e:
+                    print("Error: {}".format(e))
 ##############################################################################
 
         # If the optional coordinates are given
