@@ -18,6 +18,7 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 import argparse
 import random
 import math
+import sys
 
 import base64
 import numpy as np
@@ -82,13 +83,17 @@ class Component(ApplicationSession):
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
 
+    def printConsole(self, message):
+        print(message)
+        sys.__stdout__.flush()
+
     def onConnect(self):
-        print("Transport connected")
+        self.printConsole("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        print("session attached")
+        self.printConsole("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -111,30 +116,30 @@ class Component(ApplicationSession):
             self.prev_ball = []
             self.idx = 0
             self.wheels = [0 for _ in range(10)]
-            print("Initializing variables...")
+            self.printConsole("Initializing variables...")
             return
 ##############################################################################
             
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("Got the game info successfully")
+            self.printConsole("Got the game info successfully")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                print("Subscribed with subscription ID {}".format(self.sub.id))
+                self.printConsole("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
-                print("Error: {}".format(e2))
+                self.printConsole("Error: {}".format(e2))
                
         init_variables(self, info)
         
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("I am ready for the game!")
+            self.printConsole("I am ready for the game!")
             
     def get_coord(self, received_frame):
         self.cur_ball = received_frame.coordinates[BALL]
@@ -212,7 +217,7 @@ class Component(ApplicationSession):
         
     @inlineCallbacks
     def on_event(self, f):        
-        #print("event received")
+        #self.printConsole("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -328,27 +333,27 @@ class Component(ApplicationSession):
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
             
-        #print(received_frame.time)
-        #print(received_frame.score)
-        #print(received_frame.reset_reason)
-        #print(self.end_of_frame)
-        #print(received_frame.subimages)   
+        #self.printConsole(received_frame.time)
+        #self.printConsole(received_frame.score)
+        #self.printConsole(received_frame.reset_reason)
+        #self.printConsole(self.end_of_frame)
+        #self.printConsole(received_frame.subimages)   
         
         if (self.end_of_frame):
-            #print("end of frame")
+            #self.printConsole("end of frame")
             
             # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #print(received_frame.coordinates[OP_TEAM][0][X])
-            #print(received_frame.coordinates[OP_TEAM][0][Y])
-            #print(received_frame.coordinates[OP_TEAM][0][TH])        
-            #print(received_frame.coordinates[BALL][X])
-            #print(received_frame.coordinates[BALL][Y])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][0][X])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][0][Y])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][0][TH])        
+            #self.printConsole(received_frame.coordinates[BALL][X])
+            #self.printConsole(received_frame.coordinates[BALL][Y])
             
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
@@ -373,7 +378,7 @@ class Component(ApplicationSession):
 ##############################################################################            
           
             if(received_frame.reset_reason == GAME_END):
-                print("Game ended.")
+                self.printConsole("Game ended.")
 
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
@@ -383,18 +388,18 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                print("Unsubscribed...")
+                self.printConsole("Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
-                    print("Error: {}".format(e))
+                    self.printConsole("Error: {}".format(e))
 ##############################################################################
             
             self.end_of_frame = False
 
 
     def onDisconnect(self):
-        print("disconnected")
+        self.printConsole("disconnected")
         if reactor.running:
             reactor.stop()
 

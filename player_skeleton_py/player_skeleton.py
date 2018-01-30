@@ -16,6 +16,7 @@ from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 import argparse
+import sys
 
 #reset_reason
 NONE = 0
@@ -41,13 +42,17 @@ class Component(ApplicationSession):
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
 
+    def printConsole(self, message):
+        print(message)
+        sys.__stdout__.flush()
+
     def onConnect(self):
-        print("Transport connected")
+        self.printConsole("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        print("session attached")
+        self.printConsole("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -58,35 +63,35 @@ class Component(ApplicationSession):
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
-            print("Initializing variables...")
+            self.printConsole("Initializing variables...")
             return
 ##############################################################################
             
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("Got the game info successfully")
+            self.printConsole("Got the game info successfully")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                print("Subscribed with subscription ID {}".format(self.sub.id))
+                self.printConsole("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
-                print("Error: {}".format(e2))
+                self.printConsole("Error: {}".format(e2))
                
         init_variables(self, info)
         
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("I am ready for the game!")
+            self.printConsole("I am ready for the game!")
             
             
     @inlineCallbacks
     def on_event(self, f):        
-        #print("event received")
+        #self.printConsole("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -95,13 +100,13 @@ class Component(ApplicationSession):
         
         if 'reset_reason' in f: 
             if (f['reset_reason'] == GAME_START):
-                print("Game started : " + str(f['time']))
+                self.printConsole("Game started : " + str(f['time']))
             if (f['reset_reason'] == SCORE_MYTEAM):
-                print("My team scored : " + str(f['time']))
+                self.printConsole("My team scored : " + str(f['time']))
             elif (f['reset_reason'] == SCORE_OPPONENT):
-                print("Opponent scored : " + str(f['time']))
+                self.printConsole("Opponent scored : " + str(f['time']))
             if(f['reset_reason'] == GAME_END):
-                print("Game ended.")
+                self.printConsole("Game ended.")
 
 ##############################################################################
                 #(virtual finish())
@@ -111,11 +116,11 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                print("Unsubscribed...")
+                self.printConsole("Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
-                    print("Error: {}".format(e))
+                    self.printConsole("Error: {}".format(e))
 ##############################################################################
 
         # If the optional coordinates are given
@@ -130,7 +135,7 @@ class Component(ApplicationSession):
         
         if 'EOF' in f:
             if (f['EOF']):
-                #print("end of frame")
+                #self.printConsole("end of frame")
 
 ##############################################################################
                 #(virtual update())
@@ -139,7 +144,7 @@ class Component(ApplicationSession):
 ##############################################################################            
 
     def onDisconnect(self):
-        print("disconnected")
+        self.printConsole("disconnected")
         if reactor.running:
             reactor.stop()
 
