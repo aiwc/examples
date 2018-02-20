@@ -224,12 +224,22 @@ class Component(ApplicationSession):
 
 if __name__ == '__main__':
     
+    try:
+        unicode
+    except NameError:
+        # Define 'unicode' for Python 3
+        def unicode(s, *_):
+            return s
+
+    def to_unicode(s):
+        return unicode(s, "utf-8")
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("server_ip")
-    parser.add_argument("port")
-    parser.add_argument("realm")
-    parser.add_argument("key")
-    parser.add_argument("datapath")
+    parser.add_argument("server_ip", type=to_unicode)
+    parser.add_argument("port", type=to_unicode)
+    parser.add_argument("realm", type=to_unicode)
+    parser.add_argument("key", type=to_unicode)
+    parser.add_argument("datapath", type=to_unicode)
     
     args = parser.parse_args()
     #print ("Arguments:")
