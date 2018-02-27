@@ -260,8 +260,9 @@ class Component(ApplicationSession):
             #final_img = np.array(resized_img)
 
             # Example: using the normalized coordinates for robot 0 and ball
-            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35), round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi)),
-                        round(received_frame.coordinates[BALL][X]/2.05), round(received_frame.coordinates[BALL][Y]/1.35)]
+            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2), 
+                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2), 
+                        round(received_frame.coordinates[BALL][Y]/1.35, 2)]
 
             # Action
             action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
