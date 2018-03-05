@@ -93,12 +93,10 @@ class Component(ApplicationSession):
         sys.__stdout__.flush()
 
     def onConnect(self):
-        self.printConsole("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.printConsole("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -116,7 +114,6 @@ class Component(ApplicationSession):
             self._frame = 0 
             self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
             self.wheels = [0 for _ in range(10)]
-            self.printConsole("Initializing variables...")
             return
 ##############################################################################
             
@@ -125,10 +122,8 @@ class Component(ApplicationSession):
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
-            self.printConsole("Got the game info successfully")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                self.printConsole("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
                
@@ -138,13 +133,9 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
-        else:
-            self.printConsole("I am ready for the game!")
-            
             
     @inlineCallbacks
     def on_event(self, f):        
-        #self.printConsole("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -228,7 +219,6 @@ class Component(ApplicationSession):
         #self.printConsole(self.end_of_frame)
         
         if (self.end_of_frame):
-            #self.printConsole("end of frame")
 
             # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
@@ -274,7 +264,6 @@ class Component(ApplicationSession):
 ##############################################################################            
 
             if(received_frame.reset_reason == GAME_END):
-                self.printConsole("Game ended.")
 
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
@@ -284,7 +273,6 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                self.printConsole("Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
@@ -295,7 +283,6 @@ class Component(ApplicationSession):
 
     
     def onDisconnect(self):
-        self.printConsole("disconnected")
         if reactor.running:
             reactor.stop()
 
@@ -319,12 +306,6 @@ if __name__ == '__main__':
     parser.add_argument("datapath", type=to_unicode)
     
     args = parser.parse_args()
-    #print ("Arguments:")
-    #print (args.server_ip)
-    #print (args.port)
-    #print (args.realm)
-    #print (args.key)
-    #print (args.datapath)
     
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
