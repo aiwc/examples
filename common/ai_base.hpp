@@ -1,8 +1,5 @@
-// File:              ai_base.hpp
-// Date:              Jan. 24, 2018
-// Description:       AI World Cup AI backbone header
 // Author(s):         Inbae Jeong, Chansol Hong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #ifndef H_AI_BASE_HPP
 #define H_AI_BASE_HPP

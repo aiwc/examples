@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: player_rulebased-algorithm.py
-# Date: Jan. 23, 2018
-# Description: AI soccer algorithm that controls robots based on some rules
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 

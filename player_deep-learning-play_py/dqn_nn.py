@@ -1,8 +1,5 @@
-# File: dqn_nn.py
-# Date: Jan. 23, 2018
-# Description: Deep Q Neural Network class example for AI Soccer
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 import tensorflow as tf
 import numpy as np

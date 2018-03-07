@@ -1,8 +1,5 @@
-// File:              player_rulebased.cpp
-// Date:              Jan. 24, 2018
-// Description:       AI soccer algorithm that controls robots based on some rules
 // Author(s):         Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #include "ai_base.hpp"
 
