@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: player_random-walk.py
-# Date: Jan. 24, 2018
-# Description: AI soccer program that control robots based on random moves
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 

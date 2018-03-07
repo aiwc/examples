@@ -1,8 +1,5 @@
-# File: helper.py
-# Date: Jan. 23, 2018
-# Description: Helper functions for the rule based algorithm example in Python
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 import math
 

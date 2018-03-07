@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: commentator_skeleton.py
-# Date: Jan. 23, 2018
-# Description: AI commentator skeleton algorithm
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 
