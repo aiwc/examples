@@ -133,6 +133,8 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
+        else:
+            self.printConsole("I am ready for the game!")
             
     def get_coord(self, received_frame):
         self.cur_ball = received_frame.coordinates[BALL]

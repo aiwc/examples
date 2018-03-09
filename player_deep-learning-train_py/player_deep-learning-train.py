@@ -151,6 +151,8 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
+        else:
+            self.printConsole("I am ready for the game!")
             
     @inlineCallbacks
     def on_event(self, f):        
