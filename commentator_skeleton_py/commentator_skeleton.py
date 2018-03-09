@@ -82,12 +82,10 @@ class Component(ApplicationSession):
         sys.__stdout__.flush()
 
     def onConnect(self):
-        self.printConsole("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        self.printConsole("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -102,7 +100,6 @@ class Component(ApplicationSession):
             self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
-            self.printConsole("Initializing variables for commentator...")
             return
 ##############################################################################
             
@@ -111,10 +108,8 @@ class Component(ApplicationSession):
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
-            self.printConsole("Got the game info successfully (commentator)")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                self.printConsole("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
                
@@ -127,10 +122,8 @@ class Component(ApplicationSession):
         else:
             self.printConsole("I am the commentator for this game!")
             
-            
     @inlineCallbacks
     def on_event(self, f):        
-        #self.printConsole("event received")
 
         @inlineCallbacks
         def set_comment(self, commentary):
@@ -197,7 +190,6 @@ class Component(ApplicationSession):
                 set_comment(self, "B Team scored!!")
 
             if (received_frame.reset_reason == GAME_END):
-                self.printConsole("Game ended.")
 
                 if (received_frame.score[0] > received_frame.score[1]):
                     set_comment(self, "A Team won")
@@ -214,7 +206,6 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                self.printConsole("Commentator Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
@@ -225,7 +216,6 @@ class Component(ApplicationSession):
 
 
     def onDisconnect(self):
-        self.printConsole("commentator disconnected")
         if reactor.running:
             reactor.stop()
 
@@ -249,12 +239,6 @@ if __name__ == '__main__':
     parser.add_argument("datapath", type=to_unicode)
     
     args = parser.parse_args()
-    #print ("Arguments:")
-    #print (args.server_ip)
-    #print (args.port)
-    #print (args.realm)
-    #print (args.key)
-    #print (args.datapath)
     
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
