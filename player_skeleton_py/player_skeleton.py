@@ -30,6 +30,8 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+ACTIVE = 3
+TOUCH = 4
 
 class Component(ApplicationSession):
     """
@@ -113,14 +115,18 @@ class Component(ApplicationSession):
 ##############################################################################
 
         # If the optional coordinates are given
-        #if 'coordinates' in f:
+        # if 'coordinates' in f:
             # myteam = f['coordinates'][MY_TEAM]
             # opponent = f['coordinates'][OP_TEAM]
             # ball =  f['coordinates'][BALL]
 
             # myteam0_x = f['coordinates'][MY_TEAM][0][X]
-            # myteam0_x = f['coordinates'][MY_TEAM][0][Y]
-            # myteam0_x = f['coordinates'][MY_TEAM][0][TH]
+            # myteam0_y = f['coordinates'][MY_TEAM][0][Y]
+            # myteam0_th = f['coordinates'][MY_TEAM][0][TH]
+            # myteam0_act = f['coordinates'][MY_TEAM][0][ACTIVE]
+            # myteam0_tou = f['coordinates'][MY_TEAM][0][TOUCH]
+            # if (myteam0_tou == True):
+            #   self.printConsole("My robot 0 touched the ball!")
         
         if 'EOF' in f:
             if (f['EOF']):

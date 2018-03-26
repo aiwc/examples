@@ -20,6 +20,7 @@ namespace aiwc {
     double y;
     double th;
     bool is_active;
+    bool touch;
   };
 
   struct ball_coordinate
@@ -101,7 +102,7 @@ namespace aiwc {
   {
   protected:
     enum { MYTEAM, OPPONENT, ATEAM = MYTEAM, BTEAM = OPPONENT };
-    enum { X, Y, TH, ACTIVE };
+    enum { X, Y, TH, ACTIVE, TOUCH };
 
   public:
     ai_base(std::string server_ip, std::size_t port, std::string realm, std::string key, std::string datapath);

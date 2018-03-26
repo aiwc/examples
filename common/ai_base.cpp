@@ -52,11 +52,12 @@ namespace msgpack {
       {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::robot_coordinate& v) const
         {
-          const auto coord = o.as<std::tuple<double, double, double, bool> >(); // x, y, th, active
+          const auto coord = o.as<std::tuple<double, double, double, bool, bool> >(); // x, y, th, active, touch
           v = aiwc::robot_coordinate{ std::get<0>(coord),
                                       std::get<1>(coord),
                                       std::get<2>(coord),
-                                      std::get<3>(coord) };
+                                      std::get<3>(coord),
+                                      std::get<4>(coord) };
           return o;
         }
       };
