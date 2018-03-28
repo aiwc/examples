@@ -28,7 +28,7 @@ GAME_START = 1
 SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
-DEADLOCK = 5 # when the ball is stuck for 5 seconds
+DEADLOCK = 5
 
 #coordinates
 MY_TEAM = 0
@@ -37,6 +37,8 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+ACTIVE = 3
+TOUCH = 4
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -336,12 +338,13 @@ class Component(ApplicationSession):
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TOUCH])
             #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
             #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
             #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][0][X])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][0][Y])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][0][TH])        
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][ACTIVE])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
             #self.printConsole(received_frame.coordinates[BALL][X])
             #self.printConsole(received_frame.coordinates[BALL][Y])
             
