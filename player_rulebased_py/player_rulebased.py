@@ -150,23 +150,21 @@ class Component(ApplicationSession):
         self.idx = min_idx
 
     def set_wheel_velocity(self, robot_id, left_wheel, right_wheel):
-        ratio_l = 1
-        ratio_r = 1
+        multiplier = 1
         
-        if(left_wheel > self.max_linear_velocity or left_wheel < -self.max_linear_velocity):
-            ratio_l = left_wheel / self.max_linear_velocity
-            left_wheel /= ratio_l
-        if(right_wheel > self.max_linear_velocity or right_wheel < -self.max_linear_velocity):
-            ratio_r = right_wheel / self.max_linear_velocity
-            right_wheel /= ratio_r
+        if(abs(left_wheel) > self.max_linear_velocity or abs(right_wheel) > self.max_linear_velocity):
+            if (abs(left_wheel) > abs(right_wheel)):
+                multiplier = self.max_linear_velocity / abs(left_wheel)
+            else:
+                multiplier = self.max_linear_velocity / abs(right_wheel)
         
-        self.wheels[2*robot_id] = left_wheel
-        self.wheels[2*robot_id + 1] = right_wheel
+        self.wheels[2*robot_id] = left_wheel*multiplier
+        self.wheels[2*robot_id + 1] = right_wheel*multiplier
 
     def position(self, robot_id, x, y):
         damping = 0.35
-        mult_lin = 2
-        mult_ang = 0.2
+        mult_lin = 3.5
+        mult_ang = 0.4
         ka = 0
         sign = 1
         
@@ -224,8 +222,8 @@ class Component(ApplicationSession):
             self.position(robot_id, x, y)
             
         def defender(self, robot_id, idx, offset_y):
-            ox = 0.066
-            oy = 0.044
+            ox = 0.1
+            oy = 0.075
             min_x = (-self.field[X]/2) + (self.robot_size/2) + 0.05 
             
             # If ball is on offense
@@ -233,13 +231,13 @@ class Component(ApplicationSession):
                 # If ball is in the upper part of the field (y>0)
                 if (self.cur_ball[Y] > 0):
                     self.position(robot_id, 
-                                  (self.cur_ball[X]-1.1)/2, 
-                                  (min(self.cur_ball[Y],0.65))+offset_y)
+                                  (self.cur_ball[X]-self.field[X]/2)/2, 
+                                  (min(self.cur_ball[Y],self.field[Y]/3))+offset_y)
                 # If ball is in the lower part of the field (y<0)
                 else:
                     self.position(robot_id, 
-                                  (self.cur_ball[X]-1.1)/2, 
-                                  (max(self.cur_ball[Y],-0.65))+offset_y)
+                                  (self.cur_ball[X]-self.field[X]/2)/2, 
+                                  (max(self.cur_ball[Y],-self.field[Y]/3))+offset_y)
             # If ball is on defense
             else:
                 # If robot is in front of the ball
@@ -251,8 +249,8 @@ class Component(ApplicationSession):
                                       ((self.cur_ball[Y]+oy) if (self.cur_posture[robot_id][Y]<0) else (self.cur_ball[Y]-oy)))
                     else:
                         self.position(robot_id, 
-                                      (max(self.cur_ball[X]-0.01, min_x)), 
-                                      ((self.cur_posture[robot_id][Y]+0.01) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.01)))
+                                      (max(self.cur_ball[X]-0.03, min_x)), 
+                                      ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
                 # If robot is behind the ball
                 else:
                     if (robot_id == idx):
@@ -261,45 +259,38 @@ class Component(ApplicationSession):
                                       self.cur_ball[Y])                        
                     else:
                         self.position(robot_id, 
-                                      (max(self.cur_ball[X]-0.01, min_x)), 
-                                      ((self.cur_posture[robot_id][Y]+0.01) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.01)))
+                                      (max(self.cur_ball[X]-0.03, min_x)), 
+                                      ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
                         
         def midfielder(self, robot_id, idx, offset_y):
-            ox = 0.066
-            oy = 0.044
+            ox = 0.1
+            oy = 0.075
             ball_dist = helper.distance(self.cur_posture[robot_id][X], self.cur_ball[X], self.cur_posture[robot_id][Y], self.cur_ball[Y])
             goal_dist = helper.distance(self.cur_posture[robot_id][X], self.field[X]/2, self.cur_posture[robot_id][Y], 0)
             
-            # Spin
-            if (ball_dist < 0.1 and ( abs(self.cur_posture[robot_id][Y]) > 0.7 or (abs(self.cur_posture[robot_id][X]) > 0.9 and abs(self.cur_posture[robot_id][Y]) > self.goal[Y]/2))):
-                self.set_wheel_velocity(robot_id, 1.0, -1.0)
-            else:
-                # if the robot is the nearest from the ball
-                if (robot_id == idx):
-                    #print(ball_dist)
-                    if (ball_dist < 0.03):
-                        # if near the ball and near the opposite team goal
-                        if (goal_dist < 0.66):
-                            self.position(robot_id, self.field[X]/2, 0)
-                        else:
-                            # if near and in front of the ball
-                            if (self.cur_ball[X] < self.cur_posture[robot_id][X] - 0.044):
-                                x_suggest = max(self.cur_ball[X] - 0.044, -self.field[X]/6)
-                                self.position(robot_id, x_suggest, self.cur_ball[Y])
-                            # if near and behind the ball
-                            else:
-                                self.position(robot_id, self.field[X] + self.goal[X], -self.goal[Y]/2)
+            if (robot_id == idx):
+                if (ball_dist < 0.04):
+                    # if near the ball and near the opposite team goal
+                    if (goal_dist < 1.0):
+                        self.position(robot_id, self.field[X]/2, 0)
                     else:
-                        if (self.cur_ball[X] < self.cur_posture[robot_id][X]):
-                            if (self.cur_ball[Y] > 0):
-                                self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.8))
-                            else:
-                                self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.8))
+                        # if near and in front of the ball
+                        if (self.cur_ball[X] < self.cur_posture[robot_id][X] - 0.044):
+                            x_suggest = max(self.cur_ball[X] - 0.044, -self.field[X]/6)
+                            self.position(robot_id, x_suggest, self.cur_ball[Y])
+                        # if near and behind the ball
                         else:
-                            #print("I am here")
-                            self.position(robot_id, self.cur_ball[X], self.cur_ball[Y])
+                            self.position(robot_id, self.field[X] + self.goal[X], -self.goal[Y]/2)
                 else:
-                    self.position(robot_id, max(self.cur_ball[X]-0.05, -0.5), self.cur_ball[Y]+offset_y)
+                    if (self.cur_ball[X] < self.cur_posture[robot_id][X]):
+                        if (self.cur_ball[Y] > 0):
+                            self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.45*self.field[Y]))
+                        else:
+                            self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.45*self.field[Y]))
+                    else:
+                        self.position(robot_id, self.cur_ball[X], self.cur_ball[Y])
+            else:
+                self.position(robot_id, max(self.cur_ball[X]-0.1, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y)
         
         # initiate empty frame
         received_frame = Frame()
