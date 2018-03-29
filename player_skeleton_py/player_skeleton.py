@@ -21,7 +21,7 @@ GAME_START = 1
 SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
-DEADLOCK = 5 # when the ball is stuck for 5 seconds
+DEADLOCK = 5
 
 #coordinates
 MY_TEAM = 0
