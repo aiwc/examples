@@ -1,8 +1,5 @@
-// File:              ai_base.hpp
-// Date:              Jan. 24, 2018
-// Description:       AI World Cup AI backbone header
 // Author(s):         Inbae Jeong, Chansol Hong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #ifndef H_AI_BASE_HPP
 #define H_AI_BASE_HPP
@@ -23,6 +20,7 @@ namespace aiwc {
     double y;
     double th;
     bool is_active;
+    bool touch;
   };
 
   struct ball_coordinate
@@ -104,7 +102,7 @@ namespace aiwc {
   {
   protected:
     enum { MYTEAM, OPPONENT, ATEAM = MYTEAM, BTEAM = OPPONENT };
-    enum { X, Y, TH, ACTIVE };
+    enum { X, Y, TH, ACTIVE, TOUCH };
 
   public:
     ai_base(std::string server_ip, std::size_t port, std::string realm, std::string key, std::string datapath);

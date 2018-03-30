@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: player_deep-learning-train.py
-# Date: Jan. 23, 2018
-# Description: Deep Q Learning example training code
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 # Additional Information:
 # Train Robot 0 to chase the ball from its coordinates, orientation and the ball coordinates
@@ -23,6 +20,7 @@ import argparse
 import random
 import math
 import os
+import sys
 
 import base64
 import numpy as np
@@ -36,7 +34,7 @@ GAME_START = 1
 SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
-DEADLOCK = 5 # when the ball is stuck for 5 seconds
+DEADLOCK = 5
 
 #coordinates
 MY_TEAM = 0
@@ -45,6 +43,8 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+ACTIVE = 3
+TOUCH = 4
 
 #path to your checkpoint
 CHECKPOINT = os.path.join(os.path.dirname(__file__), 'dqn.ckpt')
@@ -91,13 +91,15 @@ class Component(ApplicationSession):
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
 
+    def printConsole(self, message):
+        print(message)
+        sys.__stdout__.flush()
+
     def onConnect(self):
-        print("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        print("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -129,35 +131,30 @@ class Component(ApplicationSession):
             self.Q = NeuralNetwork(None, False, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
             self.Q_ = NeuralNetwork(self.Q, False, True)
             self.wheels = [0 for _ in range(10)]   
-            print("Initializing variables...")
             return
 ##############################################################################
             
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("Got the game info successfully")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                print("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
-                print("Error: {}".format(e2))
+                self.printConsole("Error: {}".format(e2))
                
         init_variables(self, info)
         
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("I am ready for the game!")
-            
+            self.printConsole("I am ready for the game!")
             
     @inlineCallbacks
     def on_event(self, f):        
-        #print("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -238,31 +235,31 @@ class Component(ApplicationSession):
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
             
-        #print(received_frame.time)
-        #print(received_frame.score)
-        #print(received_frame.reset_reason)
-        #print(self.end_of_frame)
+        #self.printConsole(received_frame.time)
+        #self.printConsole(received_frame.score)
+        #self.printConsole(received_frame.reset_reason)
+        #self.printConsole(self.end_of_frame)
         
         if (self.end_of_frame):
-            #print("end of frame")
 
             # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-            #print(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-            #print(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #print(received_frame.coordinates[OP_TEAM][0][X])
-            #print(received_frame.coordinates[OP_TEAM][0][Y])
-            #print(received_frame.coordinates[OP_TEAM][0][TH])        
-            #print(received_frame.coordinates[BALL][X])
-            #print(received_frame.coordinates[BALL][Y])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TOUCH])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][ACTIVE])
+            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
+            #self.printConsole(received_frame.coordinates[BALL][X])
+            #self.printConsole(received_frame.coordinates[BALL][Y])
 	    
             self._frame += 1        
 
             # To get the image at the end of each frame use the variable:
-            #print(self.image.ImageBuffer)
+            #self.printConsole(self.image.ImageBuffer)
 
 ##############################################################################
             #(virtual update())
@@ -315,23 +312,22 @@ class Component(ApplicationSession):
                 y_value = r + self.gamma*np.max(self.Q_.IterateNetwork(batch_phy_), axis=1).reshape((self.minibatch_size,1))
                 self.sqerror = self.Q.TrainNetwork(batch_phy, a, y_value)
                 if self._iterations % 100 == 0: # Print information every 100 iterations
-                    print("Squared Error(Episode" + str(self._iterations) + "): " + str(self.sqerror))
-                    print("Epsilon: " + str(self.epsilon)) 
+                    self.printConsole("Squared Error(Episode" + str(self._iterations) + "): " + str(self.sqerror))
+                    self.printConsole("Epsilon: " + str(self.epsilon)) 
                 if self._iterations % self.update == 0:
                     self.Q_.Copy(self.Q)
-                    print("Copied Target Network")
+                    self.printConsole("Copied Target Network")
                 if self._iterations % self.save_every_steps == 0:
                     self.Q.SaveToFile(CHECKPOINT)
-                    print("Saved Checkpoint")
+                    self.printConsole("Saved Checkpoint")
                 if self._iterations % self.step_epsilon == 0:
                     self.epsilon = max(self.epsilon - self.dec_epsilon, self.final_epsilon)
                     self.D = [] # Reset Replay Memory for new generation
-                    print("New Episode! New Epsilon:" + str(self.epsilon))
+                    self.printConsole("New Episode! New Epsilon:" + str(self.epsilon))
 
 ##############################################################################
 
             if(received_frame.reset_reason == GAME_END):
-                print("Game ended.")
 
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
@@ -341,37 +337,39 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                print("Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
-                    print("Error: {}".format(e))
+                    self.printConsole("Error: {}".format(e))
 ##############################################################################
             
             self.end_of_frame = False
 
     
     def onDisconnect(self):
-        print("disconnected")
         if reactor.running:
             reactor.stop()
 
 if __name__ == '__main__':
     
+    try:
+        unicode
+    except NameError:
+        # Define 'unicode' for Python 3
+        def unicode(s, *_):
+            return s
+
+    def to_unicode(s):
+        return unicode(s, "utf-8")
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("server_ip")
-    parser.add_argument("port")
-    parser.add_argument("realm")
-    parser.add_argument("key")
-    parser.add_argument("datapath")
+    parser.add_argument("server_ip", type=to_unicode)
+    parser.add_argument("port", type=to_unicode)
+    parser.add_argument("realm", type=to_unicode)
+    parser.add_argument("key", type=to_unicode)
+    parser.add_argument("datapath", type=to_unicode)
     
     args = parser.parse_args()
-    #print ("Arguments:")
-    #print (args.server_ip)
-    #print (args.port)
-    #print (args.realm)
-    #print (args.key)
-    #print (args.datapath)
     
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm

@@ -1,8 +1,5 @@
-// File:              player_skeleton.cpp
-// Date:              Jan. 24, 2018
-// Description:       A simple AI soccer algorithm that only makes robots move forward
 // Author(s):         Inbae Jeong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #include "ai_base.hpp"
 
@@ -56,11 +53,18 @@ private:
       // const auto& myteam   = f.opt_coordinates->robots[MYTEAM];
       // const auto& opponent = f.opt_coordinates->robots[OPPONENT];
       // const auto& ball     = f.opt_coordinates->ball;
-
+      //
       // const auto& myteam0_x      = (*f.opt_coordinates).robots[MYTEAM][0].x;
       // const auto& myteam0_y      = (*f.opt_coordinates).robots[MYTEAM][0].y;
       // const auto& myteam0_th     = (*f.opt_coordinates).robots[MYTEAM][0].th;
       // const auto& myteam0_active = (*f.opt_coordinates).robots[MYTEAM][0].is_active;
+      // const auto& myteam0_touch  = (*f.opt_coordinates).robots[MYTEAM][0].touch;
+      //
+      // for (int i = 0; i < 5; i++) {
+      //   if ((*f.opt_coordinates).robots[MYTEAM][i].touch) {
+      //     std::cout << "My robot " << i << " touched the ball" << std::endl;
+      //   }
+      // }
     }
     else { // given no coordinates, you need to get coordinates from image
     }

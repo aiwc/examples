@@ -1,8 +1,5 @@
-// File:              general_image-fetch.cpp
-// Date:              Jan. 24, 2018
-// Description:       An example of image fetch
 // Author(s):         Inbae Jeong, Chansol Hong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #include "ai_base.hpp"
 

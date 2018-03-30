@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: player_skeleton.py
-# Date: Jan. 23, 2018
-# Description: AI soccer skeleton algorithm
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 
@@ -16,6 +13,7 @@ from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 import argparse
+import sys
 
 #reset_reason
 NONE = 0
@@ -23,7 +21,7 @@ GAME_START = 1
 SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
-DEADLOCK = 5 # when the ball is stuck for 5 seconds
+DEADLOCK = 5
 
 #coordinates
 MY_TEAM = 0
@@ -32,6 +30,8 @@ BALL = 2
 X = 0
 Y = 1
 TH = 2
+ACTIVE = 3
+TOUCH = 4
 
 class Component(ApplicationSession):
     """
@@ -41,13 +41,15 @@ class Component(ApplicationSession):
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
 
+    def printConsole(self, message):
+        print(message)
+        sys.__stdout__.flush()
+
     def onConnect(self):
-        print("Transport connected")
         self.join(self.config.realm)
 
     @inlineCallbacks
     def onJoin(self, details):
-        print("session attached")
 
 ##############################################################################
         def init_variables(self, info):
@@ -58,35 +60,30 @@ class Component(ApplicationSession):
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
-            print("Initializing variables...")
             return
 ##############################################################################
             
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("Got the game info successfully")
             try:
                 self.sub = yield self.subscribe(self.on_event, args.key)
-                print("Subscribed with subscription ID {}".format(self.sub.id))
             except Exception as e2:
-                print("Error: {}".format(e2))
+                self.printConsole("Error: {}".format(e2))
                
         init_variables(self, info)
         
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
-            print("Error: {}".format(e))
+            self.printConsole("Error: {}".format(e))
         else:
-            print("I am ready for the game!")
-            
+            self.printConsole("I am ready for the game!")
             
     @inlineCallbacks
     def on_event(self, f):        
-        #print("event received")
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -95,13 +92,13 @@ class Component(ApplicationSession):
         
         if 'reset_reason' in f: 
             if (f['reset_reason'] == GAME_START):
-                print("Game started : " + str(f['time']))
+                self.printConsole("Game started : " + str(f['time']))
             if (f['reset_reason'] == SCORE_MYTEAM):
-                print("My team scored : " + str(f['time']))
+                self.printConsole("My team scored : " + str(f['time']))
             elif (f['reset_reason'] == SCORE_OPPONENT):
-                print("Opponent scored : " + str(f['time']))
+                self.printConsole("Opponent scored : " + str(f['time']))
             if(f['reset_reason'] == GAME_END):
-                print("Game ended.")
+                self.printConsole("Game ended.")
 
 ##############################################################################
                 #(virtual finish())
@@ -111,26 +108,28 @@ class Component(ApplicationSession):
                     output.close()
                 #unsubscribe; reset or leave  
                 yield self.sub.unsubscribe()
-                print("Unsubscribed...")
                 try:
                     yield self.leave()
                 except Exception as e:
-                    print("Error: {}".format(e))
+                    self.printConsole("Error: {}".format(e))
 ##############################################################################
 
         # If the optional coordinates are given
-        #if 'coordinates' in f:
+        # if 'coordinates' in f:
             # myteam = f['coordinates'][MY_TEAM]
             # opponent = f['coordinates'][OP_TEAM]
             # ball =  f['coordinates'][BALL]
 
             # myteam0_x = f['coordinates'][MY_TEAM][0][X]
-            # myteam0_x = f['coordinates'][MY_TEAM][0][Y]
-            # myteam0_x = f['coordinates'][MY_TEAM][0][TH]
+            # myteam0_y = f['coordinates'][MY_TEAM][0][Y]
+            # myteam0_th = f['coordinates'][MY_TEAM][0][TH]
+            # myteam0_act = f['coordinates'][MY_TEAM][0][ACTIVE]
+            # myteam0_tou = f['coordinates'][MY_TEAM][0][TOUCH]
+            # if (myteam0_tou == True):
+            #   self.printConsole("My robot 0 touched the ball!")
         
         if 'EOF' in f:
             if (f['EOF']):
-                #print("end of frame")
 
 ##############################################################################
                 #(virtual update())
@@ -139,26 +138,29 @@ class Component(ApplicationSession):
 ##############################################################################            
 
     def onDisconnect(self):
-        print("disconnected")
         if reactor.running:
             reactor.stop()
 
 if __name__ == '__main__':
     
+    try:
+        unicode
+    except NameError:
+        # Define 'unicode' for Python 3
+        def unicode(s, *_):
+            return s
+
+    def to_unicode(s):
+        return unicode(s, "utf-8")
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("server_ip")
-    parser.add_argument("port")
-    parser.add_argument("realm")
-    parser.add_argument("key")
-    parser.add_argument("datapath")
+    parser.add_argument("server_ip", type=to_unicode)
+    parser.add_argument("port", type=to_unicode)
+    parser.add_argument("realm", type=to_unicode)
+    parser.add_argument("key", type=to_unicode)
+    parser.add_argument("datapath", type=to_unicode)
     
     args = parser.parse_args()
-    #print ("Arguments:")
-    #print (args.server_ip)
-    #print (args.port)
-    #print (args.realm)
-    #print (args.key)
-    #print (args.datapath)
     
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm

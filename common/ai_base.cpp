@@ -1,8 +1,5 @@
-// File:              ai_base.cpp
-// Date:              Jan. 24, 2018
-// Description:       AI World Cup AI backbone
 // Author(s):         Inbae Jeong, Chansol Hong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #include <boost/asio.hpp> // need to be the first header to avoid winsock error in windows
 
@@ -55,11 +52,12 @@ namespace msgpack {
       {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::robot_coordinate& v) const
         {
-          const auto coord = o.as<std::tuple<double, double, double, bool> >(); // x, y, th, active
+          const auto coord = o.as<std::tuple<double, double, double, bool, bool> >(); // x, y, th, active, touch
           v = aiwc::robot_coordinate{ std::get<0>(coord),
                                       std::get<1>(coord),
                                       std::get<2>(coord),
-                                      std::get<3>(coord) };
+                                      std::get<3>(coord),
+                                      std::get<4>(coord) };
           return o;
         }
       };

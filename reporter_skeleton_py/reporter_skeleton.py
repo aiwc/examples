@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 
+# File: reporter_skeleton.py
+# Date: Mar. 20, 2018
+# Description: AI reporter skeleton algorithm
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 
@@ -102,6 +105,7 @@ class Component(ApplicationSession):
             self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
+            self.paragraphs = [] 
             return
 ##############################################################################
             
@@ -122,14 +126,14 @@ class Component(ApplicationSession):
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
-            self.printConsole("I am the commentator for this game!")
+            self.printConsole("I am the reporter for this game!")
             
     @inlineCallbacks
     def on_event(self, f):        
 
         @inlineCallbacks
-        def set_comment(self, commentary):
-            yield self.call(u'aiwc.commentate', args.key, commentary)
+        def set_report(self, report):
+            yield self.call(u'aiwc.report', args.key, report)
             return
         
         # initiate empty frame
@@ -162,11 +166,6 @@ class Component(ApplicationSession):
         #self.printConsole(received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
         
-        if (received_frame.reset_reason == GAME_START):
-            set_comment(self, "Game has begun")
-        elif (received_frame.reset_reason == DEADLOCK):
-            set_comment(self, "Position is reset since no one touched the ball") 
-
         if (self.end_of_frame):
             #self.printConsole("end of frame")
 
@@ -187,19 +186,18 @@ class Component(ApplicationSession):
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-            if (received_frame.coordinates[BALL][X] >= (self.field[X] / 2)):
-                set_comment(self, "A Team scored!!")
-            elif (received_frame.coordinates[BALL][X] <= (-self.field[X] / 2)):
-                set_comment(self, "B Team scored!!")
-
             if (received_frame.reset_reason == GAME_END):
 
                 if (received_frame.score[0] > received_frame.score[1]):
-                    set_comment(self, "A Team won")
+                    self.paragraphs.append("A Team won")
                 elif (received_frame.score[0] > received_frame.score[1]):
-                    set_comment(self, "B Team won")
+                    self.paragraphs.append("B Team won")
                 else:
-                    set_comment(self, "The game ended in a draw")
+                    self.paragraphs.append("The game ended in a draw")
+
+                self.paragraphs.append("It was really a great match!")
+
+                set_report(self, self.paragraphs)
 
 ##############################################################################
                 #(virtual finish())

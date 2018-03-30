@@ -1,8 +1,5 @@
-// File:              general_frame-skip.cpp
-// Date:              Jan. 24, 2018
-// Description:       An example of skipping frames for heavy operations
 // Author(s):         Inbae Jeong
-// Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+// Maintainer:        Chansol Hong (cshong@rit.kaist.ac.kr)
 
 #include "ai_base.hpp"
 
@@ -78,7 +75,7 @@ private:
   void finish()
   {
     behavior_thread.join();
-    
+
     // You have less than 30 seconds before it's killed.
     std::ofstream ofs(datapath + "/result.txt");
     ofs << "my_result" << std::endl;
