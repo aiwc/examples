@@ -52,12 +52,13 @@ namespace msgpack {
       {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::robot_coordinate& v) const
         {
-          const auto coord = o.as<std::tuple<double, double, double, bool, bool> >(); // x, y, th, active, touch
+          const auto coord = o.as<std::tuple<double, double, double, bool, bool, double> >(); // x, y, th, active, touch, meters_run
           v = aiwc::robot_coordinate{ std::get<0>(coord),
                                       std::get<1>(coord),
                                       std::get<2>(coord),
                                       std::get<3>(coord),
-                                      std::get<4>(coord) };
+                                      std::get<4>(coord),
+                                      std::get<5>(coord) };
           return o;
         }
       };
@@ -95,7 +96,7 @@ namespace msgpack {
           enum {
             FIELD, GOAL, PENALTY_AREA, GOAL_AREA,
             BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, ROBOT_RADIUS, AXLE_LENGTH, MAX_LIN_VEL,
-            RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
+            MAX_METERS_RUN, RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
           };
 
           const auto m = o.as<std::map<std::string, msgpack::object> >();
@@ -111,6 +112,7 @@ namespace msgpack {
             m.find("robot_radius"),
             m.find("axle_length"),
             m.find("max_linear_velocity"),
+            m.find("max_meters_run"),
             m.find("resolution"),
             m.find("number_of_robots"),
             m.find("codewords"),
@@ -132,6 +134,7 @@ namespace msgpack {
                               its[ROBOT_RADIUS]->second.as<decltype(aiwc::game_info::robot_radius)>(),
                               its[AXLE_LENGTH]->second.as<decltype(aiwc::game_info::axle_length)>(),
                               its[MAX_LIN_VEL]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
+                              its[MAX_METERS_RUN]->second.as<decltype(aiwc::game_info::max_meters_run)>(),
                               its[RESOLUTION]->second.as<decltype(aiwc::game_info::resolution)>(),
                               its[NUMBER_OF_ROBOTS]->second.as<decltype(aiwc::game_info::number_of_robots)>(),
                               its[CODEWORDS]->second.as<decltype(aiwc::game_info::codewords)>(),

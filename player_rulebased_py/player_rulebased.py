@@ -39,6 +39,7 @@ Y = 1
 TH = 2
 ACTIVE = 3
 TOUCH = 4
+METERS_RUN = 5
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -55,9 +56,9 @@ class Received_Image(object):
            for j in range(0, self.received_parts[i].height): # y axis
                for k in range(0, self.received_parts[i].width): # x axis
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
-    
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
+
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
         self.x = x
@@ -77,7 +78,7 @@ class Frame(object):
 class Component(ApplicationSession):
     """
     AI Base + Rule Based Algorithm
-    """ 
+    """
 
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
@@ -98,6 +99,7 @@ class Component(ApplicationSession):
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
             #       robot_height, robot_radius, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
+            #       max_meters_run
             # self.game_time = info['game_time']
             self.field = info['field']
             self.robot_size = 2*info['robot_radius']
@@ -106,6 +108,7 @@ class Component(ApplicationSession):
             self.resolution = info['resolution']
             self.colorChannels = 3
             self.number_of_robots = info['number_of_robots']
+            self.max_meters_run = info['max_meters_run']
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.cur_posture = []
@@ -115,7 +118,7 @@ class Component(ApplicationSession):
             self.wheels = [0 for _ in range(10)]
             return
 ##############################################################################
-            
+
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -125,20 +128,22 @@ class Component(ApplicationSession):
                 self.sub = yield self.subscribe(self.on_event, args.key)
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
-               
+
         init_variables(self, info)
-        
+
+        self.printConsole("MAX: {}".format(self.max_meters_run))
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
             self.printConsole("I am ready for the game!")
-            
+
     def get_coord(self, received_frame):
         self.cur_ball = received_frame.coordinates[BALL]
         self.cur_posture = received_frame.coordinates[MY_TEAM]
-            
+
     def find_closest_robot(self):
         min_idx = 0
         min_distance = 9999.99
@@ -151,13 +156,13 @@ class Component(ApplicationSession):
 
     def set_wheel_velocity(self, robot_id, left_wheel, right_wheel):
         multiplier = 1
-        
+
         if(abs(left_wheel) > self.max_linear_velocity or abs(right_wheel) > self.max_linear_velocity):
             if (abs(left_wheel) > abs(right_wheel)):
                 multiplier = self.max_linear_velocity / abs(left_wheel)
             else:
                 multiplier = self.max_linear_velocity / abs(right_wheel)
-        
+
         self.wheels[2*robot_id] = left_wheel*multiplier
         self.wheels[2*robot_id + 1] = right_wheel*multiplier
 
@@ -167,18 +172,18 @@ class Component(ApplicationSession):
         mult_ang = 0.4
         ka = 0
         sign = 1
-        
+
         dx = x - self.cur_posture[robot_id][X]
         dy = y - self.cur_posture[robot_id][Y]
         d_e = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
         desired_th = (math.pi/2) if (dx == 0 and dy == 0) else math.atan2(dy, dx)
 
-        d_th = desired_th - self.cur_posture[robot_id][TH] 
+        d_th = desired_th - self.cur_posture[robot_id][TH]
         while(d_th > math.pi):
             d_th -= 2*math.pi
         while(d_th < -math.pi):
             d_th += 2*math.pi
-            
+
         if (d_e > 1):
             ka = 17/90
         elif (d_e > 0.5):
@@ -189,54 +194,54 @@ class Component(ApplicationSession):
             ka = 23/90
         else:
             ka = 25/90
-            
+
         if (d_th > helper.degree2radian(95)):
             d_th -= math.pi
             sign = -1
         elif (d_th < helper.degree2radian(-95)):
             d_th += math.pi
             sign = -1
-            
+
         if (abs(d_th) > helper.degree2radian(85)):
             self.set_wheel_velocity(robot_id, -mult_ang*d_th, mult_ang*d_th)
         else:
             if (d_e < 5 and abs(d_th) < helper.degree2radian(40)):
                 ka = 0.1
             ka *= 4
-            self.set_wheel_velocity(robot_id, 
+            self.set_wheel_velocity(robot_id,
                                     sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) - mult_ang * ka * d_th),
-                                    sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) + mult_ang * ka * d_th))           
-        
+                                    sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) + mult_ang * ka * d_th))
+
     @inlineCallbacks
-    def on_event(self, f):        
+    def on_event(self, f):
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
-        
+
         def goalie(self, robot_id):
             # Goalie just track the ball[Y] position at a fixed position on the X axis
             x = (-self.field[X]/2) + (self.robot_size/2) + 0.05
             y = max(min(self.cur_ball[Y], (self.goal[Y]/2 - self.robot_size/2)), -self.goal[Y]/2 + self.robot_size/2)
             self.position(robot_id, x, y)
-            
+
         def defender(self, robot_id, idx, offset_y):
             ox = 0.1
             oy = 0.075
-            min_x = (-self.field[X]/2) + (self.robot_size/2) + 0.05 
-            
+            min_x = (-self.field[X]/2) + (self.robot_size/2) + 0.05
+
             # If ball is on offense
             if (self.cur_ball[X] > 0):
                 # If ball is in the upper part of the field (y>0)
                 if (self.cur_ball[Y] > 0):
-                    self.position(robot_id, 
-                                  (self.cur_ball[X]-self.field[X]/2)/2, 
+                    self.position(robot_id,
+                                  (self.cur_ball[X]-self.field[X]/2)/2,
                                   (min(self.cur_ball[Y],self.field[Y]/3))+offset_y)
                 # If ball is in the lower part of the field (y<0)
                 else:
-                    self.position(robot_id, 
-                                  (self.cur_ball[X]-self.field[X]/2)/2, 
+                    self.position(robot_id,
+                                  (self.cur_ball[X]-self.field[X]/2)/2,
                                   (max(self.cur_ball[Y],-self.field[Y]/3))+offset_y)
             # If ball is on defense
             else:
@@ -244,30 +249,30 @@ class Component(ApplicationSession):
                 if (self.cur_posture[robot_id][X] > self.cur_ball[X] - ox):
                     # If this defender is the nearest defender from the ball
                     if (robot_id == idx):
-                        self.position(robot_id, 
-                                      (self.cur_ball[X]-ox), 
+                        self.position(robot_id,
+                                      (self.cur_ball[X]-ox),
                                       ((self.cur_ball[Y]+oy) if (self.cur_posture[robot_id][Y]<0) else (self.cur_ball[Y]-oy)))
                     else:
-                        self.position(robot_id, 
-                                      (max(self.cur_ball[X]-0.03, min_x)), 
+                        self.position(robot_id,
+                                      (max(self.cur_ball[X]-0.03, min_x)),
                                       ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
                 # If robot is behind the ball
                 else:
                     if (robot_id == idx):
-                        self.position(robot_id, 
-                                      self.cur_ball[X], 
-                                      self.cur_ball[Y])                        
+                        self.position(robot_id,
+                                      self.cur_ball[X],
+                                      self.cur_ball[Y])
                     else:
-                        self.position(robot_id, 
-                                      (max(self.cur_ball[X]-0.03, min_x)), 
+                        self.position(robot_id,
+                                      (max(self.cur_ball[X]-0.03, min_x)),
                                       ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
-                        
+
         def midfielder(self, robot_id, idx, offset_y):
             ox = 0.1
             oy = 0.075
             ball_dist = helper.distance(self.cur_posture[robot_id][X], self.cur_ball[X], self.cur_posture[robot_id][Y], self.cur_ball[Y])
             goal_dist = helper.distance(self.cur_posture[robot_id][X], self.field[X]/2, self.cur_posture[robot_id][Y], 0)
-            
+
             if (robot_id == idx):
                 if (ball_dist < 0.04):
                     # if near the ball and near the opposite team goal
@@ -291,12 +296,12 @@ class Component(ApplicationSession):
                         self.position(robot_id, self.cur_ball[X], self.cur_ball[Y])
             else:
                 self.position(robot_id, max(self.cur_ball[X]-0.1, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y)
-        
+
         # initiate empty frame
         received_frame = Frame()
         previous_frame = Frame()
         received_subimages = []
-        
+
         if 'time' in f:
             received_frame.time = f['time']
         if 'score' in f:
@@ -310,23 +315,23 @@ class Component(ApplicationSession):
                                                    s['y'],
                                                    s['w'],
                                                    s['h'],
-                                                   s['base64'].encode('utf8')))   
+                                                   s['base64'].encode('utf8')))
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']            
+            received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-            
+
         #self.printConsole(received_frame.time)
         #self.printConsole(received_frame.score)
         #self.printConsole(received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
-        #self.printConsole(received_frame.subimages)   
-        
+        #self.printConsole(received_frame.subimages)
+
         if (self.end_of_frame):
-            
+
             # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
@@ -338,16 +343,18 @@ class Component(ApplicationSession):
             #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
             #self.printConsole(received_frame.coordinates[BALL][X])
             #self.printConsole(received_frame.coordinates[BALL][Y])
-            
+
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
-            
+
             if(received_frame.reset_reason == GAME_START):
                 previous_frame = received_frame
                 self.get_coord(received_frame)
-            
-            self.get_coord(received_frame)            
+
+            self.get_coord(received_frame)
             self.find_closest_robot()
+
+            # self.printConsole("Meters run: {}, {}, {}, {}, {}".format(received_frame.coordinates[MY_TEAM][0][METERS_RUN],received_frame.coordinates[MY_TEAM][1][METERS_RUN],received_frame.coordinates[MY_TEAM][2][METERS_RUN],received_frame.coordinates[MY_TEAM][3][METERS_RUN],received_frame.coordinates[MY_TEAM][4][METERS_RUN]))
 
 ##############################################################################
             #(update the robots wheels)
@@ -357,10 +364,10 @@ class Component(ApplicationSession):
             defender(self, 2, self.idx, -0.2)
             midfielder(self, 1, self.idx, 0.15)
             midfielder(self, 0, self.idx, -0.15)
-            
+
             set_wheel(self, self.wheels)
-##############################################################################            
-          
+##############################################################################
+
             if(received_frame.reset_reason == GAME_END):
 
 ##############################################################################
@@ -369,14 +376,14 @@ class Component(ApplicationSession):
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()
-                #unsubscribe; reset or leave  
+                #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
                 try:
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
-            
+
             self.end_of_frame = False
 
 
@@ -386,7 +393,7 @@ class Component(ApplicationSession):
 
 
 if __name__ == '__main__':
-    
+
     try:
         unicode
     except NameError:
@@ -403,19 +410,19 @@ if __name__ == '__main__':
     parser.add_argument("realm", type=to_unicode)
     parser.add_argument("key", type=to_unicode)
     parser.add_argument("datapath", type=to_unicode)
-    
+
     args = parser.parse_args()
-    
+
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
-    
+
     # create a Wamp session object
     session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
-    
+
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
-    
+
     runner.run(session, auto_reconnect=True)
