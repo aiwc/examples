@@ -55,7 +55,7 @@ namespace aiwc {
     double robot_radius;        // m
     double axle_length;         // m
     double max_linear_velocity; // m/s
-    double max_meters_run;      // m
+    std::array<double, 5> max_meters_run;      // m
 
     std::array<std::size_t, 2> resolution; // [x, y]
     std::size_t number_of_robots;

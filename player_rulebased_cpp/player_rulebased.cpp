@@ -258,9 +258,8 @@ private:
       return;
     }
 
-    // std::cout << "Myteam(" << info.max_meters_run << "): [";
-    // for (std::size_t id = 0; id < 5; id++) {
-    //   std::cout << (*f.opt_coordinates).robots[MYTEAM][id].meters_run << ", ";
+    // for (std::size_t id = 0; id < info.number_of_robots; id++) {
+    //   std::cout << (*f.opt_coordinates).robots[MYTEAM][id].meters_run << "/" << info.max_meters_run[id] << ", ";
     // }
     // std::cout << "]" << std::endl;
 
