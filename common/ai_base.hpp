@@ -21,6 +21,7 @@ namespace aiwc {
     double th;
     bool is_active;
     bool touch;
+    double meters_run;
   };
 
   struct ball_coordinate
@@ -54,6 +55,7 @@ namespace aiwc {
     double robot_radius;        // m
     double axle_length;         // m
     double max_linear_velocity; // m/s
+    std::array<double, 5> max_meters_run;      // m
 
     std::array<std::size_t, 2> resolution; // [x, y]
     std::size_t number_of_robots;

@@ -258,6 +258,11 @@ private:
       return;
     }
 
+    // for (std::size_t id = 0; id < info.number_of_robots; id++) {
+    //   std::cout << (*f.opt_coordinates).robots[MYTEAM][id].meters_run << "/" << info.max_meters_run[id] << ", ";
+    // }
+    // std::cout << "]" << std::endl;
+
     std::tie(cur_posture, cur_ball) = get_coord(f);
 
     int idx = find_closest_robot();
