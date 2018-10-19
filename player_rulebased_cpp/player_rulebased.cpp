@@ -116,10 +116,10 @@ private:
 
   void goalie(std::size_t id)
   {
-	const double x = -info.field[X] / 2 + info.robot_radius + 0.05;
+	const double x = -info.field[X] / 2 + info.robot_size / sqrt(2) + 0.05;
     const double y = std::max(std::min(cur_ball[Y],
-				       info.goal[Y] / 2 - info.robot_radius),
-			      -info.goal[Y] / 2 + info.robot_radius);
+				       info.goal[Y] / 2 - info.robot_size / sqrt(2)),
+			      -info.goal[Y] / 2 + info.robot_size / sqrt(2));
     //std::cout << "Target Pos: " << x << "," << y << std::endl;
     position(id, x, y);
   }
@@ -129,7 +129,7 @@ private:
     const double ox = 0.1;
     const double oy = 0.075;
 
-    const double min_x = -info.field[X]/2 + info.robot_radius + 0.05;
+    const double min_x = -info.field[X]/2 + info.robot_radius / sqrt(2) + 0.05;
 
     // If ball is on offense
     if(cur_ball[X] > 0) {

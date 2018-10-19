@@ -36,7 +36,7 @@ TOUCH = 4
 class Component(ApplicationSession):
     """
     AI Base + Skeleton
-    """ 
+    """
 
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
@@ -53,16 +53,17 @@ class Component(ApplicationSession):
 
 ##############################################################################
         def init_variables(self, info):
-            # Here you have the information of the game (virtual init())
+            # Here you have the information of the game (virtual init() in random_walk.cpp)
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
+            #       robot_height, robot_size, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
+            #       max_meters_run
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
             return
 ##############################################################################
-            
+
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -72,25 +73,25 @@ class Component(ApplicationSession):
                 self.sub = yield self.subscribe(self.on_event, args.key)
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
-               
+
         init_variables(self, info)
-        
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
             self.printConsole("I am ready for the game!")
-            
+
     @inlineCallbacks
-    def on_event(self, f):        
+    def on_event(self, f):
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
-        
-        if 'reset_reason' in f: 
+
+        if 'reset_reason' in f:
             if (f['reset_reason'] == GAME_START):
                 self.printConsole("Game started : " + str(f['time']))
             if (f['reset_reason'] == SCORE_MYTEAM):
@@ -106,7 +107,7 @@ class Component(ApplicationSession):
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()
-                #unsubscribe; reset or leave  
+                #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
                 try:
                     yield self.leave()
@@ -127,7 +128,7 @@ class Component(ApplicationSession):
             # myteam0_tou = f['coordinates'][MY_TEAM][0][TOUCH]
             # if (myteam0_tou == True):
             #   self.printConsole("My robot 0 touched the ball!")
-        
+
         if 'EOF' in f:
             if (f['EOF']):
 
@@ -135,14 +136,14 @@ class Component(ApplicationSession):
                 #(virtual update())
                 wheels = [self.max_linear_velocity for _ in range(10)]
                 set_wheel(self, wheels)
-##############################################################################            
+##############################################################################
 
     def onDisconnect(self):
         if reactor.running:
             reactor.stop()
 
 if __name__ == '__main__':
-    
+
     try:
         unicode
     except NameError:
@@ -159,19 +160,19 @@ if __name__ == '__main__':
     parser.add_argument("realm", type=to_unicode)
     parser.add_argument("key", type=to_unicode)
     parser.add_argument("datapath", type=to_unicode)
-    
+
     args = parser.parse_args()
-    
+
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
-    
+
     # create a Wamp session object
     session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
-    
+
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
-    
+
     runner.run(session, auto_reconnect=True)

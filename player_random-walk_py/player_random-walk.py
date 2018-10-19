@@ -52,8 +52,8 @@ class Received_Image(object):
            for j in range(0, self.received_parts[i].height): # y axis
                for k in range(0, self.received_parts[i].width): # x axis
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
 
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
@@ -62,7 +62,7 @@ class SubImage(object):
         self.width = width
         self.height = height
         self.b64 = b64
-        
+
 class Frame(object):
     def __init__(self):
         self.time = None
@@ -74,7 +74,7 @@ class Frame(object):
 class Component(ApplicationSession):
     """
     AI Base + Random Walk
-    """ 
+    """
 
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
@@ -93,8 +93,9 @@ class Component(ApplicationSession):
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
+            #       robot_height, robot_size, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
+            #       max_meters_run
             # self.game_time = info['game_time']
             # self.field = info['field']
             self.max_linear_velocity = info['max_linear_velocity']
@@ -104,7 +105,7 @@ class Component(ApplicationSession):
             self.image = Received_Image(self.resolution, self.colorChannels)
             return
 ##############################################################################
-            
+
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -114,28 +115,28 @@ class Component(ApplicationSession):
                 self.sub = yield self.subscribe(self.on_event, args.key)
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
-               
+
         init_variables(self, info)
-        
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
             self.printConsole("I am ready for the game!")
-            
+
     @inlineCallbacks
-    def on_event(self, f):        
+    def on_event(self, f):
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
-        
+
         # initiate empty frame
         received_frame = Frame()
         received_subimages = []
-        
+
         if 'time' in f:
             received_frame.time = f['time']
         if 'score' in f:
@@ -153,19 +154,19 @@ class Component(ApplicationSession):
                                                    s['base64'].encode('utf8')))
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']            
+            received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-            
+
         #self.printConsole(received_frame.time)
         #self.printConsole(received_frame.score)
         #self.printConsole(received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
-        
+
         if (self.end_of_frame):
 
             # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
+            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
             #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID]ACTIVE])
@@ -185,8 +186,8 @@ class Component(ApplicationSession):
             #(virtual update() in random_walk.cpp)
             wheels = [random.uniform(-self.max_linear_velocity,self.max_linear_velocity) for _ in range(10)]
             set_wheel(self, wheels)
-##############################################################################            
-          
+##############################################################################
+
             if(received_frame.reset_reason == GAME_END):
 
 ##############################################################################
@@ -195,14 +196,14 @@ class Component(ApplicationSession):
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()
-                #unsubscribe; reset or leave  
+                #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
                 try:
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
-            
+
             self.end_of_frame = False
 
 
@@ -212,7 +213,7 @@ class Component(ApplicationSession):
 
 
 if __name__ == '__main__':
-    
+
     try:
         unicode
     except NameError:
@@ -229,19 +230,19 @@ if __name__ == '__main__':
     parser.add_argument("realm", type=to_unicode)
     parser.add_argument("key", type=to_unicode)
     parser.add_argument("datapath", type=to_unicode)
-    
+
     args = parser.parse_args()
-    
+
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
-    
+
     # create a Wamp session object
     session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
-    
+
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
-    
+
     runner.run(session, auto_reconnect=True)

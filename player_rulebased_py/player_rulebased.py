@@ -97,12 +97,12 @@ class Component(ApplicationSession):
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
             # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
+            #       robot_height, robot_size, max_linear_velocity, field, team_info,
             #       {rating, name}, axle_length, resolution, ball_radius
             #       max_meters_run
             # self.game_time = info['game_time']
             self.field = info['field']
-            self.robot_size = 2*info['robot_radius']
+            self.robot_size = info['robot_size']
             self.goal = info['goal']
             self.max_linear_velocity = info['max_linear_velocity']
             self.resolution = info['resolution']

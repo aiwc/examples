@@ -95,7 +95,7 @@ namespace msgpack {
         {
           enum {
             FIELD, GOAL, PENALTY_AREA, GOAL_AREA,
-            BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, ROBOT_RADIUS, AXLE_LENGTH, MAX_LIN_VEL,
+            BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, ROBOT_SIZE, AXLE_LENGTH, MAX_LIN_VEL,
             MAX_METERS_RUN, RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
           };
 
@@ -109,7 +109,7 @@ namespace msgpack {
             m.find("ball_radius"),
             m.find("robot_size"),
             m.find("robot_height"),
-            m.find("robot_radius"),
+            m.find("robot_size"),
             m.find("axle_length"),
             m.find("max_linear_velocity"),
             m.find("max_meters_run"),
@@ -131,7 +131,7 @@ namespace msgpack {
                               its[BALL_RADIUS]->second.as<decltype(aiwc::game_info::ball_radius)>(),
                               its[ROBOT_SIZE]->second.as<decltype(aiwc::game_info::robot_size)>(),
                               its[ROBOT_HEIGHT]->second.as<decltype(aiwc::game_info::robot_height)>(),
-                              its[ROBOT_RADIUS]->second.as<decltype(aiwc::game_info::robot_radius)>(),
+                              its[ROBOT_SIZE]->second.as<decltype(aiwc::game_info::robot_size)>(),
                               its[AXLE_LENGTH]->second.as<decltype(aiwc::game_info::axle_length)>(),
                               its[MAX_LIN_VEL]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
                               its[MAX_METERS_RUN]->second.as<decltype(aiwc::game_info::max_meters_run)>(),
