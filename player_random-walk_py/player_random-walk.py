@@ -98,6 +98,7 @@ class Component(ApplicationSession):
             #       max_meters_run
             # self.game_time = info['game_time']
             # self.field = info['field']
+            self.number_of_robots = info['number_of_robots']
             self.max_linear_velocity = info['max_linear_velocity']
             self.resolution = info['resolution']
             self.colorChannels = 3
@@ -184,7 +185,10 @@ class Component(ApplicationSession):
 
 ##############################################################################
             #(virtual update() in random_walk.cpp)
-            wheels = [random.uniform(-self.max_linear_velocity,self.max_linear_velocity) for _ in range(10)]
+            wheels = []
+            for i in range(self.number_of_robots):
+                wheels.append(random.uniform(-self.max_linear_velocity[i], self.max_linear_velocity[i]))
+                wheels.append(random.uniform(-self.max_linear_velocity[i], self.max_linear_velocity[i]))
             set_wheel(self, wheels)
 ##############################################################################
 

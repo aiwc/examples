@@ -60,6 +60,7 @@ class Component(ApplicationSession):
             #       max_meters_run
             # self.game_time = info['game_time']
             # self.field = info['field']
+            self.number_of_robots = info['number_of_robots']
             self.max_linear_velocity = info['max_linear_velocity']
             return
 ##############################################################################
@@ -134,7 +135,10 @@ class Component(ApplicationSession):
 
 ##############################################################################
                 #(virtual update())
-                wheels = [self.max_linear_velocity for _ in range(10)]
+                wheels = []
+                for i in range(self.number_of_robots):
+                    wheels.append(self.max_linear_velocity[i])
+                    wheels.append(self.max_linear_velocity[i])
                 set_wheel(self, wheels)
 ##############################################################################
 

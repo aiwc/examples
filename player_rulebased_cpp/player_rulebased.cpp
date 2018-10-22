@@ -46,12 +46,12 @@ private:
 
   void velocity(std::size_t id, double l, double r)
   {
-    if (std::abs(l) > info.max_linear_velocity || std::abs(r) > info.max_linear_velocity) {
+    if (std::abs(l) > info.max_linear_velocity[id] || std::abs(r) > info.max_linear_velocity[id]) {
       double multiplier;
       if (std::abs(l) > std::abs(r))
-        multiplier = info.max_linear_velocity / std::abs(l);
+        multiplier = info.max_linear_velocity[id] / std::abs(l);
       else
-        multiplier = info.max_linear_velocity / std::abs(r);
+        multiplier = info.max_linear_velocity[id] / std::abs(r);
 
       l *= multiplier;
       r *= multiplier;
@@ -129,7 +129,7 @@ private:
     const double ox = 0.1;
     const double oy = 0.075;
 
-    const double min_x = -info.field[X]/2 + info.robot_radius / sqrt(2) + 0.05;
+    const double min_x = -info.field[X]/2 + info.robot_size / sqrt(2) + 0.05;
 
     // If ball is on offense
     if(cur_ball[X] > 0) {
@@ -257,6 +257,10 @@ private:
     else if(f.reset_reason == aiwc::GAME_END) {
       return;
     }
+
+    // for (std::size_t id = 0; id < info.number_of_robots; id++) {
+    //   std::cout << info.max_linear_velocity[id] << std::endl;
+    // }
 
     // for (std::size_t id = 0; id < info.number_of_robots; id++) {
     //   std::cout << (*f.opt_coordinates).robots[MYTEAM][id].meters_run << "/" << info.max_meters_run[id] << ", ";

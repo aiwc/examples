@@ -157,11 +157,11 @@ class Component(ApplicationSession):
     def set_wheel_velocity(self, robot_id, left_wheel, right_wheel):
         multiplier = 1
 
-        if(abs(left_wheel) > self.max_linear_velocity or abs(right_wheel) > self.max_linear_velocity):
+        if(abs(left_wheel) > self.max_linear_velocity[robot_id] or abs(right_wheel) > self.max_linear_velocity[robot_id]):
             if (abs(left_wheel) > abs(right_wheel)):
-                multiplier = self.max_linear_velocity / abs(left_wheel)
+                multiplier = self.max_linear_velocity[robot_id] / abs(left_wheel)
             else:
-                multiplier = self.max_linear_velocity / abs(right_wheel)
+                multiplier = self.max_linear_velocity[robot_id] / abs(right_wheel)
 
         self.wheels[2*robot_id] = left_wheel*multiplier
         self.wheels[2*robot_id + 1] = right_wheel*multiplier
@@ -355,7 +355,7 @@ class Component(ApplicationSession):
             self.find_closest_robot()
 
             # self.printConsole("Meters run: {}, {}, {}, {}, {}".format(received_frame.coordinates[MY_TEAM][0][METERS_RUN],received_frame.coordinates[MY_TEAM][1][METERS_RUN],received_frame.coordinates[MY_TEAM][2][METERS_RUN],received_frame.coordinates[MY_TEAM][3][METERS_RUN],received_frame.coordinates[MY_TEAM][4][METERS_RUN]))
-
+            # self.printConsole("{} - {} - {} - {} - {}".format(self.max_linear_velocity[0], self.max_linear_velocity[1], self.max_linear_velocity[2], self.max_linear_velocity[3], self.max_linear_velocity[4]))
 ##############################################################################
             #(update the robots wheels)
             # Robot Functions
