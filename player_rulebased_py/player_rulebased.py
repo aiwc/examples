@@ -359,11 +359,11 @@ class Component(ApplicationSession):
 ##############################################################################
             #(update the robots wheels)
             # Robot Functions
-            goalie(self, 4)
-            defender(self, 3, self.idx, 0.2)
+            goalie(self, 0)
+            defender(self, 1, self.idx, 0.2)
             defender(self, 2, self.idx, -0.2)
-            midfielder(self, 1, self.idx, 0.15)
-            midfielder(self, 0, self.idx, -0.15)
+            midfielder(self, 3, self.idx, 0.15)
+            midfielder(self, 4, self.idx, -0.15)
 
             set_wheel(self, self.wheels)
 ##############################################################################

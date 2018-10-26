@@ -272,11 +272,11 @@ private:
     int idx = find_closest_robot();
 
 	  // Robots Functions
-    goalie(4);
-	  defend(3, idx, 0.2);
+    goalie(0);
+	  defend(1, idx, 0.2);
 	  defend(2, idx, -0.2);
-	  midfielder(1, idx, 0.15);
-	  midfielder(0, idx, -0.15);
+	  midfielder(3, idx, 0.15);
+	  midfielder(4, idx, -0.15);
 
     prev_ball = cur_ball;
     previous_frame = f;
