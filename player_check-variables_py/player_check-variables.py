@@ -30,7 +30,7 @@ STATE_FREEKICK = 2
 
 #coordinates
 MY_TEAM = 0
-OP_TEAM = 1
+OPPONENT = 1
 BALL = 2
 X = 0
 Y = 1
@@ -152,7 +152,7 @@ class Component(ApplicationSession):
                 self.printConsole("My team scored : {}".format(f['time']))
                 self.printConsole("Current Score: {}".format(f['score']))
             elif (f['reset_reason'] == SCORE_OPPONENT):
-                self.printConsole("Opponent scored : ".format(f['time']))
+                self.printConsole("Opponent scored : {}".format(f['time']))
                 self.printConsole("Current Score: {}".format(f['score']))
             elif (f['reset_reason'] == GAME_END):
                 self.printConsole("Game ended.")
@@ -178,22 +178,21 @@ class Component(ApplicationSession):
         # Check the coordinates
         if 'coordinates' in f:
             myteam = f['coordinates'][MY_TEAM]
-            opteam = f['coordinates'][OP_TEAM]
+            opponent = f['coordinates'][OPPONENT]
             ball =  f['coordinates'][BALL]
 
             self.printConsole("======================================================")
             self.printConsole("Ball: ({}, {})".format(ball[X], ball[Y]))
             self.printConsole("======================================================")
 
-            # Try replacing 'myteam' with 'opteam' to check opponent robots' state
+            # Try replacing 'myteam' with 'opponent' to check opponent robots' state
             for i in range(self.number_of_robots):
-                self.printConsole("My Robot {}:".format(i))
+                self.printConsole("Robot {}:".format(i))
                 self.printConsole("  position: ({}, {})".format(myteam[i][X], myteam[i][Y]))
                 self.printConsole("  orientation: {}".format(myteam[i][TH]))
                 self.printConsole("  activeness: {}".format(myteam[i][ACTIVE]))
                 self.printConsole("  touch: {}".format(myteam[i][TOUCH]))
                 self.printConsole("======================================================")
-            return
 
         if 'EOF' in f:
             if (f['EOF']):

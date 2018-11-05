@@ -30,6 +30,11 @@ SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
 
+#game_state
+STATE_DEFAULT = 0
+STATE_BACKPASS = 1
+STATE_FREEKICK = 2
+
 #coordinates
 MY_TEAM = 0
 OP_TEAM = 1
@@ -39,7 +44,6 @@ Y = 1
 TH = 2
 ACTIVE = 3
 TOUCH = 4
-METERS_RUN = 5
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -96,19 +100,37 @@ class Component(ApplicationSession):
 ##############################################################################
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
-            # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_size, max_linear_velocity, field, team_info,
-            #       {rating, name}, axle_length, resolution, ball_radius
-            #       max_meters_run
+            # List: game_time, number_of_robots
+            #       field, goal, penalty_area, goal_area, resolution Dimension: [x, y]
+            #       ball_radius, ball_mass,
+            #       robot_size, robot_height, axle_length, robot_body_mass, ID: [0, 1, 2, 3, 4]
+            #       wheel_radius, wheel_mass, ID: [0, 1, 2, 3, 4]
+            #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
-            self.field = info['field']
-            self.robot_size = info['robot_size']
-            self.goal = info['goal']
-            self.max_linear_velocity = info['max_linear_velocity']
-            self.resolution = info['resolution']
-            self.colorChannels = 3
             self.number_of_robots = info['number_of_robots']
-            self.max_meters_run = info['max_meters_run']
+
+            self.field = info['field']
+            self.goal = info['goal']
+            # self.penalty_area = info['penalty_area']
+            # self.goal_area = info['goal_area']
+            self.resolution = info['resolution']
+
+            # self.ball_radius = info['ball_radius']
+            # self.ball_mass = info['ball_mass']
+
+            self.robot_size = info['robot_size']
+            # self.robot_height = info['robot_height']
+            # self.axle_length = info['axle_length']
+            # self.robot_body_mass = info['robot_body_mass']
+
+            # self.wheel_radius = info['wheel_radius']
+            # self.wheel_mass = info['wheel_mass']
+
+            self.max_linear_velocity = info['max_linear_velocity']
+            # self.max_torque = info['max_torque']
+            # self.codewords = info['codewords']
+
+            self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.cur_posture = []
@@ -131,8 +153,6 @@ class Component(ApplicationSession):
 
         init_variables(self, info)
 
-        self.printConsole("MAX: {}".format(self.max_meters_run))
-
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
@@ -154,31 +174,31 @@ class Component(ApplicationSession):
                 min_idx = i
         self.idx = min_idx
 
-    def set_wheel_velocity(self, robot_id, left_wheel, right_wheel):
+    def set_wheel_velocity(self, id, left_wheel, right_wheel):
         multiplier = 1
 
-        if(abs(left_wheel) > self.max_linear_velocity[robot_id] or abs(right_wheel) > self.max_linear_velocity[robot_id]):
+        if(abs(left_wheel) > self.max_linear_velocity[id] or abs(right_wheel) > self.max_linear_velocity[id]):
             if (abs(left_wheel) > abs(right_wheel)):
-                multiplier = self.max_linear_velocity[robot_id] / abs(left_wheel)
+                multiplier = self.max_linear_velocity[id] / abs(left_wheel)
             else:
-                multiplier = self.max_linear_velocity[robot_id] / abs(right_wheel)
+                multiplier = self.max_linear_velocity[id] / abs(right_wheel)
 
-        self.wheels[2*robot_id] = left_wheel*multiplier
-        self.wheels[2*robot_id + 1] = right_wheel*multiplier
+        self.wheels[2*id] = left_wheel*multiplier
+        self.wheels[2*id + 1] = right_wheel*multiplier
 
-    def position(self, robot_id, x, y):
+    def position(self, id, x, y):
         damping = 0.35
         mult_lin = 3.5
         mult_ang = 0.4
         ka = 0
         sign = 1
 
-        dx = x - self.cur_posture[robot_id][X]
-        dy = y - self.cur_posture[robot_id][Y]
+        dx = x - self.cur_posture[id][X]
+        dy = y - self.cur_posture[id][Y]
         d_e = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
         desired_th = (math.pi/2) if (dx == 0 and dy == 0) else math.atan2(dy, dx)
 
-        d_th = desired_th - self.cur_posture[robot_id][TH]
+        d_th = desired_th - self.cur_posture[id][TH]
         while(d_th > math.pi):
             d_th -= 2*math.pi
         while(d_th < -math.pi):
@@ -203,12 +223,12 @@ class Component(ApplicationSession):
             sign = -1
 
         if (abs(d_th) > helper.degree2radian(85)):
-            self.set_wheel_velocity(robot_id, -mult_ang*d_th, mult_ang*d_th)
+            self.set_wheel_velocity(id, -mult_ang*d_th, mult_ang*d_th)
         else:
             if (d_e < 5 and abs(d_th) < helper.degree2radian(40)):
                 ka = 0.1
             ka *= 4
-            self.set_wheel_velocity(robot_id,
+            self.set_wheel_velocity(id,
                                     sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) - mult_ang * ka * d_th),
                                     sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) + mult_ang * ka * d_th))
 
@@ -220,82 +240,82 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
 
-        def goalie(self, robot_id):
+        def goalie(self, id):
             # Goalie just track the ball[Y] position at a fixed position on the X axis
-            x = (-self.field[X]/2) + (self.robot_size/2) + 0.05
-            y = max(min(self.cur_ball[Y], (self.goal[Y]/2 - self.robot_size/2)), -self.goal[Y]/2 + self.robot_size/2)
-            self.position(robot_id, x, y)
+            x = (-self.field[X]/2) + (self.robot_size[id]/2) + 0.05
+            y = max(min(self.cur_ball[Y], (self.goal[Y]/2 - self.robot_size[id]/2)), -self.goal[Y]/2 + self.robot_size[id]/2)
+            self.position(id, x, y)
 
-        def defender(self, robot_id, idx, offset_y):
+        def defender(self, id, idx, offset_y):
             ox = 0.1
             oy = 0.075
-            min_x = (-self.field[X]/2) + (self.robot_size/2) + 0.05
+            min_x = (-self.field[X]/2) + (self.robot_size[id]/2) + 0.05
 
             # If ball is on offense
             if (self.cur_ball[X] > 0):
                 # If ball is in the upper part of the field (y>0)
                 if (self.cur_ball[Y] > 0):
-                    self.position(robot_id,
+                    self.position(id,
                                   (self.cur_ball[X]-self.field[X]/2)/2,
                                   (min(self.cur_ball[Y],self.field[Y]/3))+offset_y)
                 # If ball is in the lower part of the field (y<0)
                 else:
-                    self.position(robot_id,
+                    self.position(id,
                                   (self.cur_ball[X]-self.field[X]/2)/2,
                                   (max(self.cur_ball[Y],-self.field[Y]/3))+offset_y)
             # If ball is on defense
             else:
                 # If robot is in front of the ball
-                if (self.cur_posture[robot_id][X] > self.cur_ball[X] - ox):
+                if (self.cur_posture[id][X] > self.cur_ball[X] - ox):
                     # If this defender is the nearest defender from the ball
-                    if (robot_id == idx):
-                        self.position(robot_id,
+                    if (id == idx):
+                        self.position(id,
                                       (self.cur_ball[X]-ox),
-                                      ((self.cur_ball[Y]+oy) if (self.cur_posture[robot_id][Y]<0) else (self.cur_ball[Y]-oy)))
+                                      ((self.cur_ball[Y]+oy) if (self.cur_posture[id][Y]<0) else (self.cur_ball[Y]-oy)))
                     else:
-                        self.position(robot_id,
+                        self.position(id,
                                       (max(self.cur_ball[X]-0.03, min_x)),
-                                      ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
+                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)))
                 # If robot is behind the ball
                 else:
-                    if (robot_id == idx):
-                        self.position(robot_id,
+                    if (id == idx):
+                        self.position(id,
                                       self.cur_ball[X],
                                       self.cur_ball[Y])
                     else:
-                        self.position(robot_id,
+                        self.position(id,
                                       (max(self.cur_ball[X]-0.03, min_x)),
-                                      ((self.cur_posture[robot_id][Y]+0.03) if (self.cur_posture[robot_id][Y]<0) else (self.cur_posture[robot_id][Y]-0.03)))
+                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)))
 
-        def midfielder(self, robot_id, idx, offset_y):
+        def midfielder(self, id, idx, offset_y):
             ox = 0.1
             oy = 0.075
-            ball_dist = helper.distance(self.cur_posture[robot_id][X], self.cur_ball[X], self.cur_posture[robot_id][Y], self.cur_ball[Y])
-            goal_dist = helper.distance(self.cur_posture[robot_id][X], self.field[X]/2, self.cur_posture[robot_id][Y], 0)
+            ball_dist = helper.distance(self.cur_posture[id][X], self.cur_ball[X], self.cur_posture[id][Y], self.cur_ball[Y])
+            goal_dist = helper.distance(self.cur_posture[id][X], self.field[X]/2, self.cur_posture[id][Y], 0)
 
-            if (robot_id == idx):
+            if (id == idx):
                 if (ball_dist < 0.04):
                     # if near the ball and near the opposite team goal
                     if (goal_dist < 1.0):
-                        self.position(robot_id, self.field[X]/2, 0)
+                        self.position(id, self.field[X]/2, 0)
                     else:
                         # if near and in front of the ball
-                        if (self.cur_ball[X] < self.cur_posture[robot_id][X] - 0.044):
+                        if (self.cur_ball[X] < self.cur_posture[id][X] - 0.044):
                             x_suggest = max(self.cur_ball[X] - 0.044, -self.field[X]/6)
-                            self.position(robot_id, x_suggest, self.cur_ball[Y])
+                            self.position(id, x_suggest, self.cur_ball[Y])
                         # if near and behind the ball
                         else:
-                            self.position(robot_id, self.field[X] + self.goal[X], -self.goal[Y]/2)
+                            self.position(id, self.field[X] + self.goal[X], -self.goal[Y]/2)
                 else:
-                    if (self.cur_ball[X] < self.cur_posture[robot_id][X]):
+                    if (self.cur_ball[X] < self.cur_posture[id][X]):
                         if (self.cur_ball[Y] > 0):
-                            self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.45*self.field[Y]))
+                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.45*self.field[Y]))
                         else:
-                            self.position(robot_id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.45*self.field[Y]))
+                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.45*self.field[Y]))
                     else:
-                        self.position(robot_id, self.cur_ball[X], self.cur_ball[Y])
+                        self.position(id, self.cur_ball[X], self.cur_ball[Y])
             else:
-                self.position(robot_id, max(self.cur_ball[X]-0.1, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y)
+                self.position(id, max(self.cur_ball[X]-0.1, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y)
 
         # initiate empty frame
         received_frame = Frame()
@@ -308,6 +328,10 @@ class Component(ApplicationSession):
             received_frame.score = f['score']
         if 'reset_reason' in f:
             received_frame.reset_reason = f['reset_reason']
+        if 'game_state' in f:
+            received_frame.game_state = f['game_state']
+        if 'ball_ownership' in f:
+            received_frame.ball_ownership = f['ball_ownership']
         if 'subimages' in f:
             received_frame.subimages = f['subimages']
             for s in received_frame.subimages:
@@ -329,21 +353,6 @@ class Component(ApplicationSession):
         #self.printConsole(received_frame.subimages)
 
         if (self.end_of_frame):
-
-            # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[BALL][X])
-            #self.printConsole(received_frame.coordinates[BALL][Y])
-
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
@@ -354,22 +363,29 @@ class Component(ApplicationSession):
             self.get_coord(received_frame)
             self.find_closest_robot()
 
-            # self.printConsole("Meters run: {}, {}, {}, {}, {}".format(received_frame.coordinates[MY_TEAM][0][METERS_RUN],received_frame.coordinates[MY_TEAM][1][METERS_RUN],received_frame.coordinates[MY_TEAM][2][METERS_RUN],received_frame.coordinates[MY_TEAM][3][METERS_RUN],received_frame.coordinates[MY_TEAM][4][METERS_RUN]))
-            # self.printConsole("{} - {} - {} - {} - {}".format(self.max_linear_velocity[0], self.max_linear_velocity[1], self.max_linear_velocity[2], self.max_linear_velocity[3], self.max_linear_velocity[4]))
 ##############################################################################
-            #(update the robots wheels)
-            # Robot Functions
-            goalie(self, 0)
-            defender(self, 1, self.idx, 0.2)
-            defender(self, 2, self.idx, -0.2)
-            midfielder(self, 3, self.idx, 0.15)
-            midfielder(self, 4, self.idx, -0.15)
+            if(received_frame.game_state == STATE_DEFAULT):
+                #(update the robots' wheels)
+                # Robot Functions in STATE_DEFAULT
+                goalie(self, 0)
+                defender(self, 1, self.idx, 0.2)
+                defender(self, 2, self.idx, -0.2)
+                midfielder(self, 3, self.idx, 0.15)
+                midfielder(self, 4, self.idx, -0.15)
 
-            set_wheel(self, self.wheels)
+                set_wheel(self, self.wheels)
+##############################################################################
+            elif(received_frame.game_state == STATE_BACKPASS):
+                #(update the robots' wheels)
+                # Robot Functions in STATE_BACKPASS
+                # Drive the attacker to the center of the field to kick the ball
+                if (received_frame.ball_ownership):
+                    self.position(4, 0, 0)
+
+                set_wheel(self, self.wheels)
 ##############################################################################
 
             if(received_frame.reset_reason == GAME_END):
-
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
                 #save your data
