@@ -52,13 +52,12 @@ namespace msgpack {
       {
         msgpack::object const& operator()(msgpack::object const& o, aiwc::robot_coordinate& v) const
         {
-          const auto coord = o.as<std::tuple<double, double, double, bool, bool, double> >(); // x, y, th, active, touch, meters_run
+          const auto coord = o.as<std::tuple<double, double, double, bool, bool> >(); // x, y, th, active, touch
           v = aiwc::robot_coordinate{ std::get<0>(coord),
                                       std::get<1>(coord),
                                       std::get<2>(coord),
                                       std::get<3>(coord),
-                                      std::get<4>(coord),
-                                      std::get<5>(coord) };
+                                      std::get<4>(coord) };
           return o;
         }
       };
@@ -95,8 +94,11 @@ namespace msgpack {
         {
           enum {
             FIELD, GOAL, PENALTY_AREA, GOAL_AREA,
-            BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, AXLE_LENGTH, MAX_LIN_VEL,
-            MAX_METERS_RUN, RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
+            BALL_RADIUS, BALL_MASS,
+            ROBOT_SIZE, ROBOT_HEIGHT, AXLE_LENGTH, ROBOT_BODY_MASS,
+            WHEEL_RADIUS, WHEEL_MASS,
+            MAX_LINEAR_VELOCITY, MAX_TORQUE,
+            RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
           };
 
           const auto m = o.as<std::map<std::string, msgpack::object> >();
@@ -107,11 +109,15 @@ namespace msgpack {
             m.find("penalty_area"),
             m.find("goal_area"),
             m.find("ball_radius"),
+            m.find("ball_mass"),
             m.find("robot_size"),
             m.find("robot_height"),
             m.find("axle_length"),
+            m.find("robot_body_mass"),
+            m.find("wheel_radius"),
+            m.find("wheel_mass"),
             m.find("max_linear_velocity"),
-            m.find("max_meters_run"),
+            m.find("max_torque"),
             m.find("resolution"),
             m.find("number_of_robots"),
             m.find("codewords"),
@@ -128,11 +134,15 @@ namespace msgpack {
                               its[PENALTY_AREA]->second.as<decltype(aiwc::game_info::penalty_area)>(),
                               its[GOAL_AREA]->second.as<decltype(aiwc::game_info::goal_area)>(),
                               its[BALL_RADIUS]->second.as<decltype(aiwc::game_info::ball_radius)>(),
+                              its[BALL_MASS]->second.as<decltype(aiwc::game_info::ball_mass)>(),
                               its[ROBOT_SIZE]->second.as<decltype(aiwc::game_info::robot_size)>(),
                               its[ROBOT_HEIGHT]->second.as<decltype(aiwc::game_info::robot_height)>(),
                               its[AXLE_LENGTH]->second.as<decltype(aiwc::game_info::axle_length)>(),
-                              its[MAX_LIN_VEL]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
-                              its[MAX_METERS_RUN]->second.as<decltype(aiwc::game_info::max_meters_run)>(),
+                              its[ROBOT_BODY_MASS]->second.as<decltype(aiwc::game_info::robot_body_mass)>(),
+                              its[WHEEL_RADIUS]->second.as<decltype(aiwc::game_info::wheel_radius)>(),
+                              its[WHEEL_MASS]->second.as<decltype(aiwc::game_info::wheel_mass)>(),
+                              its[MAX_LINEAR_VELOCITY]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
+                              its[MAX_TORQUE]->second.as<decltype(aiwc::game_info::max_torque)>(),
                               its[RESOLUTION]->second.as<decltype(aiwc::game_info::resolution)>(),
                               its[NUMBER_OF_ROBOTS]->second.as<decltype(aiwc::game_info::number_of_robots)>(),
                               its[CODEWORDS]->second.as<decltype(aiwc::game_info::codewords)>(),
@@ -305,9 +315,11 @@ namespace aiwc {
           const auto& key = kv.key.as<std::string>();
           const auto& value = kv.val;
 
-          if(key == "time")              { f.time            = value.convert(); }
-          else if(key == "score")        { f.score           = value.convert(); }
-          else if(key == "reset_reason") { f.reset_reason    = value.convert(); }
+          if(key == "time")                { f.time            = value.convert(); }
+          else if(key == "score")          { f.score           = value.convert(); }
+          else if(key == "reset_reason")   { f.reset_reason    = value.convert(); }
+          else if(key == "game_state")     { f.game_state      = value.convert(); }
+          else if(key == "ball_ownership") { f.ball_ownership  = value.convert(); }
           else if(key == "subimages") {
             std::vector<aiwc::subimage> subs = value.convert();
             std::copy(std::make_move_iterator(subs.begin()),
