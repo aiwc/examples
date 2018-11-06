@@ -14,3 +14,4 @@ team_a_data/*
 team_b_data/*
 commentator_data/*
 reporter_data/*
+*/__pycache__
