@@ -19,9 +19,8 @@ namespace aiwc {
     double x;
     double y;
     double th;
-    bool is_active;
+    bool active;
     bool touch;
-    double meters_run;
   };
 
   struct ball_coordinate
@@ -46,15 +45,22 @@ namespace aiwc {
   {
     std::array<double, 2> field;        // [x, y]
     std::array<double, 2> goal;         // [x, y]
-    std::array<double, 2> goal_area;    // [x, y]
     std::array<double, 2> penalty_area; // [x, y]
+    std::array<double, 2> goal_area;    // [x, y]
 
     double ball_radius;         // m
-    double robot_size;          // m
-    double robot_height;        // m
-    double axle_length;         // m
-    std::array<double, 5> max_linear_velocity; // m/s
-    std::array<double, 5> max_meters_run;      // m
+    double ball_mass;           // kg
+
+    std::array<double, 5> robot_size;          // [m, m, m, m, m]
+    std::array<double, 5> robot_height;        // [m, m, m, m, m]
+    std::array<double, 5> axle_length;         // [m, m, m, m, m]
+    std::array<double, 5> robot_body_mass;     // [kg, kg, kg, kg, kg]
+
+    std::array<double, 5> wheel_radius;        // [m, m, m, m, m]
+    std::array<double, 5> wheel_mass;          // [kg, kg, kg, kg, kg]
+
+    std::array<double, 5> max_linear_velocity; // [m/s, m/s, m/s, m/s, m/s]
+    std::array<double, 5> max_torque;          // [N*m, N*m, N*m, N*m, N*m]
 
     std::array<std::size_t, 2> resolution; // [x, y]
     std::size_t number_of_robots;
@@ -77,6 +83,12 @@ namespace aiwc {
     SCORE_BTEAM = SCORE_OPPONENT,
   };
 
+  enum game_state {
+    STATE_DEFAULT = 0,
+    STATE_BACKPASS = 1,
+    STATE_FREEKICK = 2,
+  };
+
   struct subimage
   {
     std::size_t x;
@@ -92,6 +104,8 @@ namespace aiwc {
     double time;
     std::array<std::size_t, 2> score; // [my team, opponent] for player, [a team, b team] for commentator
     std::size_t reset_reason;
+    std::size_t game_state;
+    bool ball_ownership;
 
     std::vector<subimage> subimages;
 

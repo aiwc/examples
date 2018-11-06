@@ -116,10 +116,10 @@ private:
 
   void goalie(std::size_t id)
   {
-	const double x = -info.field[X] / 2 + info.robot_size / sqrt(2) + 0.05;
+	const double x = -info.field[X] / 2 + info.robot_size[id] / sqrt(2) + 0.05;
     const double y = std::max(std::min(cur_ball[Y],
-				       info.goal[Y] / 2 - info.robot_size / sqrt(2)),
-			      -info.goal[Y] / 2 + info.robot_size / sqrt(2));
+				       info.goal[Y] / 2 - info.robot_size[id] / sqrt(2)),
+			      -info.goal[Y] / 2 + info.robot_size[id] / sqrt(2));
     //std::cout << "Target Pos: " << x << "," << y << std::endl;
     position(id, x, y);
   }
@@ -129,7 +129,7 @@ private:
     const double ox = 0.1;
     const double oy = 0.075;
 
-    const double min_x = -info.field[X]/2 + info.robot_size / sqrt(2) + 0.05;
+    const double min_x = -info.field[X]/2 + info.robot_size[id] / sqrt(2) + 0.05;
 
     // If ball is on offense
     if(cur_ball[X] > 0) {
@@ -258,42 +258,49 @@ private:
       return;
     }
 
-    // for (std::size_t id = 0; id < info.number_of_robots; id++) {
-    //   std::cout << info.max_linear_velocity[id] << std::endl;
-    // }
-
-    // for (std::size_t id = 0; id < info.number_of_robots; id++) {
-    //   std::cout << (*f.opt_coordinates).robots[MYTEAM][id].meters_run << "/" << info.max_meters_run[id] << ", ";
-    // }
-    // std::cout << "]" << std::endl;
-
+    // update current robot and ball postures
     std::tie(cur_posture, cur_ball) = get_coord(f);
 
-    int idx = find_closest_robot();
+    // array for holding wheel speeds
+    std::array<double, 10> ws;
 
-	  // Robots Functions
-    goalie(4);
-	  defend(3, idx, 0.2);
-	  defend(2, idx, -0.2);
-	  midfielder(1, idx, 0.15);
-	  midfielder(0, idx, -0.15);
+    // act differently based on the current game state
+    switch(f.game_state) {
+      case aiwc::STATE_DEFAULT:
+        {
+          int idx = find_closest_robot();
 
+          // Robots Functions
+          goalie(0);
+          defend(1, idx, 0.2);
+          defend(2, idx, -0.2);
+          midfielder(3, idx, 0.15);
+          midfielder(4, idx, -0.15);
+        }
+        break;
+      case aiwc::STATE_BACKPASS:
+        {
+          // If the ball belongs to my team, initiate backpass
+          if (f.ball_ownership)
+            position(4, 0, 0);
+        }
+        break;
+      default:
+        break;
+    }
+
+    // hand over current frame as previous frame to next step
     prev_ball = cur_ball;
     previous_frame = f;
-
-    std::array<double, 10> ws;
 
     for(std::size_t id = 0; id < 5; ++id) {
       // std::cout << "Robot " << id << ":[" << robot_wheels[id][0] << "," << robot_wheels[id][1] << "]" << std::endl; //print robots info
       ws[2*id    ] = robot_wheels[id][0]; // left
       ws[2*id + 1] = robot_wheels[id][1]; // right
     }
-    set_wheel(ws); // this function is defined at ai_base.cpp
 
-    // for(const auto& w : ws) {
-    //   std::cout << w << ", "; //print wheels
-    // }
-    // std::cout << std::endl;
+    // send wheel speed data to the simulator
+    set_wheel(ws); // this function is defined at ai_base.cpp
   }
 
   void finish()

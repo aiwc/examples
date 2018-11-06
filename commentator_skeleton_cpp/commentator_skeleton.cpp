@@ -52,7 +52,7 @@ private:
       return;
     }
 
-    if(f.opt_coordinates) { // if the optional coordinates are given,
+    if(f.opt_coordinates) {
       if((*f.opt_coordinates).ball.x >= info.field[X] / 2) {
         commentate("A team scored!!");
       }
@@ -61,7 +61,7 @@ private:
       }
 
       // const auto& ateam0_x      = (*f.opt_coordinates).robots[ATEAM][0].x;
-      // const auto& bteam0_active = (*f.opt_coordinates).robots[BTEAM][0].is_active;
+      // const auto& bteam0_active = (*f.opt_coordinates).robots[BTEAM][0].active;
     }
     else { // given no coordinates, you need to get coordinates from image
     }
