@@ -11,3 +11,11 @@ def degree2radian(deg):
 
 def radian2degree(rad):
     return rad * 180 / math.pi
+
+def trim_radian(rad):
+    adj_rad = rad
+    while(adj_rad > math.pi):
+        adj_rad -= 2*math.pi
+    while(adj_rad < -math.pi):
+        adj_rad += 2*math.pi
+    return adj_rad

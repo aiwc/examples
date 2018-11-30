@@ -29,11 +29,16 @@ SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
+GOALKICK = 6
+FREEKICK = 7
+PENALTYKICK = 8
 
 #game_state
 STATE_DEFAULT = 0
 STATE_BACKPASS = 1
-STATE_FREEKICK = 2
+STATE_GOALKICK = 2
+STATE_FREEKICK = 3
+STATE_PENALTYKICK = 4
 
 #coordinates
 MY_TEAM = 0
@@ -76,6 +81,7 @@ class Frame(object):
         self.time = None
         self.score = None
         self.reset_reason = None
+        self.game_state = None
         self.subimages = None
         self.coordinates = None
 
@@ -111,7 +117,7 @@ class Component(ApplicationSession):
 
             self.field = info['field']
             self.goal = info['goal']
-            # self.penalty_area = info['penalty_area']
+            self.penalty_area = info['penalty_area']
             # self.goal_area = info['goal_area']
             self.resolution = info['resolution']
 
@@ -135,7 +141,9 @@ class Component(ApplicationSession):
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.cur_posture = []
             self.cur_ball = []
+            self.prev_posture = []
             self.prev_ball = []
+            self.previous_frame = Frame()
             self.idx = 0
             self.wheels = [0 for _ in range(10)]
             return
@@ -163,6 +171,8 @@ class Component(ApplicationSession):
     def get_coord(self, received_frame):
         self.cur_ball = received_frame.coordinates[BALL]
         self.cur_posture = received_frame.coordinates[MY_TEAM]
+        self.prev_ball = self.previous_frame.coordinates[BALL]
+        self.prev_posture = self.previous_frame.coordinates[MY_TEAM]
 
     def find_closest_robot(self):
         min_idx = 0
@@ -173,6 +183,11 @@ class Component(ApplicationSession):
                 min_distance = measured_distance
                 min_idx = i
         self.idx = min_idx
+
+    def predict_ball_location(self, steps):
+        dx = self.cur_ball[X] - self.prev_ball[X]
+        dy = self.cur_ball[Y] - self.prev_ball[Y]
+        return [self.cur_ball[X]+steps*dx, self.cur_ball[Y]+steps*dy]
 
     def set_wheel_velocity(self, id, left_wheel, right_wheel):
         multiplier = 1
@@ -186,9 +201,8 @@ class Component(ApplicationSession):
         self.wheels[2*id] = left_wheel*multiplier
         self.wheels[2*id + 1] = right_wheel*multiplier
 
-    def position(self, id, x, y):
+    def position(self, id, x, y, mult_lin):
         damping = 0.35
-        mult_lin = 3.5
         mult_ang = 0.4
         ka = 0
         sign = 1
@@ -232,6 +246,55 @@ class Component(ApplicationSession):
                                     sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) - mult_ang * ka * d_th),
                                     sign * (mult_lin * (1 / (1 + math.exp(-3*d_e)) - damping) + mult_ang * ka * d_th))
 
+    def face_specific_position(self, id, x, y):
+        dx = x - self.cur_posture[id][X]
+        dy = y - self.cur_posture[id][Y]
+
+        desired_th = (math.pi/2) if (dx == 0 and dy == 0) else math.atan2(dy, dx)
+
+        self.angle(id, desired_th)
+
+    # returns the angle toward a specific position from current robot posture
+    def direction_angle(self, id, x, y):
+        dx = x - self.cur_posture[id][X]
+        dy = y - self.cur_posture[id][Y]
+
+        return ((math.pi/2) if (dx == 0 and dy == 0) else math.atan2(dy, dx))
+
+    def angle(self, id, desired_th):
+        mult_ang = 0.4
+
+        d_th = desired_th - self.cur_posture[id][TH]
+        d_th = helper.trim_radian(d_th)
+
+        if (d_th > helper.degree2radian(95)):
+            d_th -= math.pi
+            sign = -1
+        elif (d_th < helper.degree2radian(-95)):
+            d_th += math.pi
+            sign = -1
+
+        self.set_wheel_velocity(id, -mult_ang*d_th, mult_ang*d_th)
+
+    def in_penalty_area(self, obj, team):
+        if (abs(obj[Y]) > self.penalty_area[Y]/2):
+            return False
+
+        if (team == MY_TEAM):
+            return (obj[X] < -self.field[X]/2 + self.penalty_area[X])
+        else:
+            return (obj[X] > self.field[X]/2 - self.penalty_area[X])
+
+    def ball_coming_toward_robot(self, id):
+        dist_prev = helper.distance(self.prev_ball[X], self.cur_posture[id][X], self.prev_ball[Y], self.cur_posture[id][Y])
+        dist_cur = helper.distance(self.cur_ball[X], self.cur_posture[id][X], self.cur_ball[Y], self.cur_posture[id][Y])
+
+        # ball is coming closer
+        if (dist_cur < dist_prev):
+            return True
+        else:
+            return False
+
     @inlineCallbacks
     def on_event(self, f):
 
@@ -241,10 +304,46 @@ class Component(ApplicationSession):
             return
 
         def goalie(self, id):
-            # Goalie just track the ball[Y] position at a fixed position on the X axis
+            # default desired position
             x = (-self.field[X]/2) + (self.robot_size[id]/2) + 0.05
             y = max(min(self.cur_ball[Y], (self.goal[Y]/2 - self.robot_size[id]/2)), -self.goal[Y]/2 + self.robot_size[id]/2)
-            self.position(id, x, y)
+
+            # if the goalie is outside the penalty area
+            if (not self.in_penalty_area(self.cur_posture[id], MY_TEAM)):
+                # return to the desired position
+                self.position(id, x, y, 5.0)
+            # if the goalie is inside the penalty area
+            else:
+                # if the ball is inside the penalty area
+                if (self.in_penalty_area(self.cur_ball, MY_TEAM)):
+                    # if the ball is behind the goalie
+                    if (self.cur_ball[X] < self.cur_posture[id][X]):
+                        # if the ball is not blocking the goalie's path
+                        if (abs(self.cur_ball[Y] - self.cur_posture[id][Y]) > 2*self.robot_size[id]):
+                            # try to get ahead of the ball
+                            self.position(id, self.cur_ball[X] - self.robot_size[id], self.cur_posture[id][Y], 3.0)
+                        else:
+                            # just give up and try not to make a suicidal goal
+                            self.angle(id, math.pi/2)
+                    # if the ball is ahead of the goalie
+                    else :
+                        desired_th = self.direction_angle(id, self.cur_ball[X], self.cur_ball[Y])
+                        rad_diff = helper.trim_radian(desired_th - self.cur_posture[id][TH])
+                        # if the robot direction is too away from the ball direction
+                        if (rad_diff > math.pi/3):
+                            # give up kicking the ball and block the goalpost
+                            self.position(id, x, y, 5.0)
+                        else:
+                            # try to kick the ball away from the goal
+                            self.position(id, self.cur_ball[X], self.cur_ball[Y], 5.0)
+                # if the ball is not in the penalty area
+                else:
+                    # if the ball is within alert range
+                    if ((self.cur_ball[X] < -self.field[X]/2 + 1.5*self.penalty_area[X]) and (abs(self.cur_ball[Y]) < 1.5*self.penalty_area[Y]/2)):
+                        self.face_specific_position(id, self.cur_ball[X], self.cur_ball[Y])
+                    # otherwise
+                    else:
+                        self.position(id, x, y, 3.0)
 
         def defender(self, id, idx, offset_y):
             ox = 0.1
@@ -257,12 +356,12 @@ class Component(ApplicationSession):
                 if (self.cur_ball[Y] > 0):
                     self.position(id,
                                   (self.cur_ball[X]-self.field[X]/2)/2,
-                                  (min(self.cur_ball[Y],self.field[Y]/3))+offset_y)
+                                  (min(self.cur_ball[Y],self.field[Y]/3))+offset_y, 5.0)
                 # If ball is in the lower part of the field (y<0)
                 else:
                     self.position(id,
                                   (self.cur_ball[X]-self.field[X]/2)/2,
-                                  (max(self.cur_ball[Y],-self.field[Y]/3))+offset_y)
+                                  (max(self.cur_ball[Y],-self.field[Y]/3))+offset_y, 5.0)
             # If ball is on defense
             else:
                 # If robot is in front of the ball
@@ -271,55 +370,54 @@ class Component(ApplicationSession):
                     if (id == idx):
                         self.position(id,
                                       (self.cur_ball[X]-ox),
-                                      ((self.cur_ball[Y]+oy) if (self.cur_posture[id][Y]<0) else (self.cur_ball[Y]-oy)))
+                                      ((self.cur_ball[Y]+oy) if (self.cur_posture[id][Y]<0) else (self.cur_ball[Y]-oy)), 5.0)
                     else:
                         self.position(id,
                                       (max(self.cur_ball[X]-0.03, min_x)),
-                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)))
+                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)), 5.0)
                 # If robot is behind the ball
                 else:
                     if (id == idx):
                         self.position(id,
                                       self.cur_ball[X],
-                                      self.cur_ball[Y])
+                                      self.cur_ball[Y], 5.0)
                     else:
                         self.position(id,
                                       (max(self.cur_ball[X]-0.03, min_x)),
-                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)))
+                                      ((self.cur_posture[id][Y]+0.03) if (self.cur_posture[id][Y]<0) else (self.cur_posture[id][Y]-0.03)), 5.0)
 
         def midfielder(self, id, idx, offset_y):
-            ox = 0.1
-            oy = 0.075
+            ox = 0.2
+            oy = 0.15
             ball_dist = helper.distance(self.cur_posture[id][X], self.cur_ball[X], self.cur_posture[id][Y], self.cur_ball[Y])
             goal_dist = helper.distance(self.cur_posture[id][X], self.field[X]/2, self.cur_posture[id][Y], 0)
 
             if (id == idx):
-                if (ball_dist < 0.04):
+                if (ball_dist < 0.2):
                     # if near the ball and near the opposite team goal
                     if (goal_dist < 1.0):
-                        self.position(id, self.field[X]/2, 0)
+                        self.position(id, self.field[X]/2, 0, 5.0)
                     else:
                         # if near and in front of the ball
-                        if (self.cur_ball[X] < self.cur_posture[id][X] - 0.044):
-                            x_suggest = max(self.cur_ball[X] - 0.044, -self.field[X]/6)
-                            self.position(id, x_suggest, self.cur_ball[Y])
+                        if (self.cur_ball[X] < self.cur_posture[id][X] - 0.15):
+                            x_suggest = max(self.cur_ball[X] - 0.15, -self.field[X]/6)
+                            self.position(id, x_suggest, self.cur_ball[Y], 5.0)
                         # if near and behind the ball
                         else:
-                            self.position(id, self.field[X] + self.goal[X], -self.goal[Y]/2)
+                            self.position(id, self.field[X] + self.goal[X], -self.goal[Y]/2, 5.0)
                 else:
                     if (self.cur_ball[X] < self.cur_posture[id][X]):
                         if (self.cur_ball[Y] > 0):
-                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.45*self.field[Y]))
+                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] - oy, 0.45*self.field[Y]), 5.0)
                         else:
-                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.45*self.field[Y]))
+                            self.position(id, self.cur_ball[X] - ox, min(self.cur_ball[Y] + oy, -0.45*self.field[Y]), 5.0)
                     else:
-                        self.position(id, self.cur_ball[X], self.cur_ball[Y])
+                        self.position(id, self.cur_ball[X], self.cur_ball[Y], 5.0)
             else:
-                self.position(id, max(self.cur_ball[X]-0.1, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y)
+                self.position(id, max(self.cur_ball[X]-0.2, -0.3*self.field[Y]), self.cur_ball[Y]+offset_y, 5.0)
 
         # initiate empty frame
         received_frame = Frame()
-        previous_frame = Frame()
         received_subimages = []
 
         if 'time' in f:
@@ -356,9 +454,8 @@ class Component(ApplicationSession):
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-            if(received_frame.reset_reason == GAME_START):
-                previous_frame = received_frame
-                self.get_coord(received_frame)
+            if(received_frame.reset_reason != NONE):
+                self.previous_frame = received_frame
 
             self.get_coord(received_frame)
             self.find_closest_robot()
@@ -372,6 +469,12 @@ class Component(ApplicationSession):
                 defender(self, 2, self.idx, -0.2)
                 midfielder(self, 3, self.idx, 0.15)
                 midfielder(self, 4, self.idx, -0.15)
+                if (self.ball_coming_toward_robot(4)):
+                    dx = self.cur_ball[X] - self.prev_ball[X]
+                    dy = self.cur_ball[Y] - self.prev_ball[Y]
+                    pred_x = (self.cur_posture[4][Y] - self.cur_ball[Y])*dx/dy + self.cur_ball[X]
+                    if (abs(pred_x - self.cur_posture[4][X]) < 0.3):
+                        self.printConsole('{} in {} steps'.format(pred_x - self.cur_posture[4][X], (self.cur_posture[4][Y] - self.cur_ball[Y])/dy))
 
                 set_wheel(self, self.wheels)
 ##############################################################################
@@ -380,13 +483,40 @@ class Component(ApplicationSession):
                 # Robot Functions in STATE_BACKPASS
                 # Drive the attacker to the center of the field to kick the ball
                 if (received_frame.ball_ownership):
-                    self.position(4, 0, 0)
+                    self.position(4, 0, 0, 5.0)
 
                 set_wheel(self, self.wheels)
 ##############################################################################
+            elif(received_frame.game_state == STATE_GOALKICK):
+                #(update the robots' wheels)
+                # Robot Functions in STATE_GOALKICK
+                # Driver the goalie forward to kick the ball
+                if (received_frame.ball_ownership):
+                    self.set_wheel_velocity(0, self.max_linear_velocity[0], self.max_linear_velocity[0])
 
-            if(received_frame.reset_reason == GAME_END):
+                set_wheel(self, self.wheels)
 ##############################################################################
+            elif(received_frame.game_state == STATE_FREEKICK):
+                #(update the robots' wheels)
+                # Robot Functions in STATE_DEFAULT
+                goalie(self, 0)
+                defender(self, 1, self.idx, 0.2)
+                defender(self, 2, self.idx, -0.2)
+                midfielder(self, 3, self.idx, 0.15)
+                midfielder(self, 4, self.idx, -0.15)
+
+                set_wheel(self, self.wheels)
+##############################################################################
+            elif(received_frame.game_state == STATE_PENALTYKICK):
+                #(update the robots' wheels)
+                # Robot Functions in STATE_PENALTYKICK
+                # Driver the attacker forward to kick the ball
+                if (received_frame.ball_ownership):
+                    self.set_wheel_velocity(4, self.max_linear_velocity[0], self.max_linear_velocity[0])
+
+                set_wheel(self, self.wheels)
+##############################################################################
+            if(received_frame.reset_reason == GAME_END):
                 #(virtual finish() in random_walk.cpp)
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
@@ -401,6 +531,7 @@ class Component(ApplicationSession):
 ##############################################################################
 
             self.end_of_frame = False
+            self.previous_frame = received_frame
 
 
     def onDisconnect(self):
