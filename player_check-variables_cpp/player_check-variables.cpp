@@ -74,8 +74,12 @@ private:
 
     if(f.game_state == aiwc::STATE_BACKPASS)
       std::cout << "Backpass [My backpass? " << f.ball_ownership << "]" << std::endl;
+    else if(f.game_state == aiwc::STATE_GOALKICK)
+      std::cout << "Goalkick [My goalkick? " << f.ball_ownership << "]" << std::endl;
     else if(f.game_state == aiwc::STATE_FREEKICK)
       std::cout << "Freekick [My freekick? " << f.ball_ownership << "]" << std::endl;
+    else if(f.game_state == aiwc::STATE_PENALTYKICK)
+      std::cout << "Penaltykick [My penaltykick? " << f.ball_ownership << "]" << std::endl;
 
     if(f.opt_coordinates) {
       const auto& myteam   = f.opt_coordinates->robots[MYTEAM];

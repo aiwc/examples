@@ -77,6 +77,9 @@ namespace aiwc {
     SCORE_OPPONENT = 3,
     GAME_END       = 4,
     DEADLOCK       = 5,
+    GOALKICK       = 6,
+    FREEKICK       = 7,
+    PENALTYKICK    = 8,
 
     // aliases
     SCORE_ATEAM = SCORE_MYTEAM,
@@ -86,7 +89,9 @@ namespace aiwc {
   enum game_state {
     STATE_DEFAULT = 0,
     STATE_BACKPASS = 1,
-    STATE_FREEKICK = 2,
+    STATE_GOALKICK = 2,
+    STATE_FREEKICK = 3,
+    STATE_PENALTYKICK = 4,
   };
 
   struct subimage
@@ -109,7 +114,6 @@ namespace aiwc {
 
     std::vector<subimage> subimages;
 
-    // coordinate is optional.
     boost::optional<coordinates> opt_coordinates;
   };
 

@@ -62,7 +62,7 @@ private:
 
   void position(std::size_t id, double x, double y, double damping = 0.35)
   {
-    const double mult_lin = 3.5;
+    const double mult_lin = 5.0;
     const double mult_ang = 0.4;
 
     const double dx = x - cur_posture[id][X];
