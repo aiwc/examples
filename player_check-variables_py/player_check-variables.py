@@ -22,15 +22,20 @@ SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
+GOALKICK = 6
+FREEKICK = 7
+PENALTYKICK = 8
 
 #game_state
 STATE_DEFAULT = 0
 STATE_BACKPASS = 1
-STATE_FREEKICK = 2
+STATE_GOALKICK = 2
+STATE_FREEKICK = 3
+STATE_PENALTYKICK = 4
 
 #coordinates
 MY_TEAM = 0
-OPPONENT = 1
+OP_TEAM = 1
 BALL = 2
 X = 0
 Y = 1
@@ -173,12 +178,17 @@ class Component(ApplicationSession):
         if 'game_state' in f:
             if (f['game_state'] == STATE_BACKPASS):
                 self.printConsole("Backpass [My backpass? {}]".format(f['ball_ownership']))
+            elif (f['game_state'] == STATE_GOALKICK):
+                self.printConsole("Goalkick [My goalkick? {}]".format(f['ball_ownership']))
             elif (f['game_state'] == STATE_FREEKICK):
-                self.printConsole("Freekick [My freekic? {}]".format(f['ball_ownership']))
+                self.printConsole("Freekick [My freekick? {}]".format(f['ball_ownership']))
+            elif (f['game_state'] == STATE_PENALTYKICK):
+                self.printConsole("Penaltykick [My penaltykick? {}]".format(f['ball_ownership']))
+
         # Check the coordinates
         if 'coordinates' in f:
             myteam = f['coordinates'][MY_TEAM]
-            opponent = f['coordinates'][OPPONENT]
+            opponent = f['coordinates'][OP_TEAM]
             ball =  f['coordinates'][BALL]
 
             self.printConsole("======================================================")

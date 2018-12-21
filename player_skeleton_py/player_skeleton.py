@@ -22,6 +22,16 @@ SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
+GOALKICK = 6
+FREEKICK = 7
+PENALTYKICK = 8
+
+#game_state
+STATE_DEFAULT = 0
+STATE_BACKPASS = 1
+STATE_GOALKICK = 2
+STATE_FREEKICK = 3
+STATE_PENALTYKICK = 4
 
 #coordinates
 MY_TEAM = 0
@@ -138,7 +148,6 @@ class Component(ApplicationSession):
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
 
-        # If the optional coordinates are given
         # if 'coordinates' in f:
             # myteam = f['coordinates'][MY_TEAM]
             # opponent = f['coordinates'][OP_TEAM]
