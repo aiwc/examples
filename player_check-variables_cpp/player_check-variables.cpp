@@ -65,12 +65,17 @@ private:
       std::cout << "Opponent scored : " << f.time << std::endl;
       std::cout << "Current Score: [" << f.score[MYTEAM] << ", " << f.score[OPPONENT] << "]" << std::endl;
     }
+    else if(f.reset_reason == aiwc::HALFTIME) {
+      std::cout << "Halftime" << std::endl;
+    }
     else if(f.reset_reason == aiwc::GAME_END) {
       // game is finished. finish() will be called after you return.
       // now you have about 30 seconds before this process is killed.
       std::cout << "Game ended : " << f.time << std::endl;
       return;
     }
+
+    std::cout << "Halftime passed? " << f.half_passed << std::endl;
 
     if(f.game_state == aiwc::STATE_BACKPASS)
       std::cout << "Backpass [My backpass? " << f.ball_ownership << "]" << std::endl;

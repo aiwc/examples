@@ -320,6 +320,7 @@ namespace aiwc {
           else if(key == "reset_reason")   { f.reset_reason    = value.convert(); }
           else if(key == "game_state")     { f.game_state      = value.convert(); }
           else if(key == "ball_ownership") { f.ball_ownership  = value.convert(); }
+          else if(key == "half_passed")    { f.half_passed     = value.convert(); }
           else if(key == "subimages") {
             std::vector<aiwc::subimage> subs = value.convert();
             std::copy(std::make_move_iterator(subs.begin()),

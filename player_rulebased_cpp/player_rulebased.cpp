@@ -254,6 +254,14 @@ private:
       std::tie(cur_posture, cur_ball) = get_coord(f);
       return;
     }
+    else if(f.reset_reason == aiwc::HALFTIME) {
+      // halftime is met - from next frame, received_frame.half_passed will be set to True
+      // although the simulation switches sides,
+      // coordinates and images given to your AI soccer algorithm will stay the same
+      // that your team is red and located on left side whether it is 1st half or 2nd half
+
+      // this example does not do anything at halftime
+    }
     else if(f.reset_reason == aiwc::GAME_END) {
       return;
     }

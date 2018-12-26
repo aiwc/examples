@@ -29,6 +29,7 @@ DEADLOCK = 5
 GOALKICK = 6
 FREEKICK = 7
 PENALTYKICK = 8
+HALFTIME = 9
 
 #game_state
 STATE_DEFAULT = 0
@@ -80,6 +81,7 @@ class Frame(object):
         self.reset_reason = None
         self.subimages = None
         self.coordinates = None
+        self.half_passed = None
 
 class Component(ApplicationSession):
     """
@@ -175,6 +177,8 @@ class Component(ApplicationSession):
             received_frame.score = f['score']
         if 'reset_reason' in f:
             received_frame.reset_reason = f['reset_reason']
+        if 'half_passed' in f:
+            received_frame.half_passed = f['half_passed']
         if 'subimages' in f:
             received_frame.subimages = f['subimages']
             # Comment the next lines if you don't need to use the image information

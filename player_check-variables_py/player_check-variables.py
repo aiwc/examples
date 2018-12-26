@@ -25,6 +25,7 @@ DEADLOCK = 5
 GOALKICK = 6
 FREEKICK = 7
 PENALTYKICK = 8
+HALFTIME = 9
 
 #game_state
 STATE_DEFAULT = 0
@@ -159,6 +160,8 @@ class Component(ApplicationSession):
             elif (f['reset_reason'] == SCORE_OPPONENT):
                 self.printConsole("Opponent scored : {}".format(f['time']))
                 self.printConsole("Current Score: {}".format(f['score']))
+            elif (f['reset_reason'] == HALFTIME):
+                self.printConsole("Halftime")
             elif (f['reset_reason'] == GAME_END):
                 self.printConsole("Game ended.")
 ##############################################################################
@@ -174,6 +177,9 @@ class Component(ApplicationSession):
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
+
+        if 'half_passed' in f:
+            self.printConsole("Halftime passed? {}".format(f['half_passed']))
 
         if 'game_state' in f:
             if (f['game_state'] == STATE_BACKPASS):

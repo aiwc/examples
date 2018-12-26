@@ -80,6 +80,7 @@ namespace aiwc {
     GOALKICK       = 6,
     FREEKICK       = 7,
     PENALTYKICK    = 8,
+    HALFTIME       = 9,
 
     // aliases
     SCORE_ATEAM = SCORE_MYTEAM,
@@ -111,6 +112,7 @@ namespace aiwc {
     std::size_t reset_reason;
     std::size_t game_state;
     bool ball_ownership;
+    bool half_passed;
 
     std::vector<subimage> subimages;
 
