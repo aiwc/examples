@@ -254,6 +254,13 @@ private:
       std::tie(cur_posture, cur_ball) = get_coord(f);
       return;
     }
+    else if(f.reset_reason == aiwc::EPISODE_END) {
+      // EPISODE_END is sent instead of GAME_END when 'repeat' option is set to 'true'
+      // to mark the end of episode
+      // you can reinitialize the parameters, count the number of episodes done, etc. here
+
+      // this example does not do anything at episode end
+    }
     else if(f.reset_reason == aiwc::HALFTIME) {
       // halftime is met - from next frame, received_frame.half_passed will be set to True
       // although the simulation switches sides,

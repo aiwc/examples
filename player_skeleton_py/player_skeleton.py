@@ -26,6 +26,7 @@ GOALKICK = 6
 FREEKICK = 7
 PENALTYKICK = 8
 HALFTIME = 9
+EPISODE_END = 10
 
 #game_state
 STATE_DEFAULT = 0
@@ -132,7 +133,9 @@ class Component(ApplicationSession):
                 self.printConsole("My team scored : " + str(f['time']))
             elif (f['reset_reason'] == SCORE_OPPONENT):
                 self.printConsole("Opponent scored : " + str(f['time']))
-            if(f['reset_reason'] == GAME_END):
+            if (f['reset_reason'] == EPISODE_END):
+                self.printConsole("Episode ended.")
+            if (f['reset_reason'] == GAME_END):
                 self.printConsole("Game ended.")
 
 ##############################################################################

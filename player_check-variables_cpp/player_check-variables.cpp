@@ -68,6 +68,9 @@ private:
     else if(f.reset_reason == aiwc::HALFTIME) {
       std::cout << "Halftime" << std::endl;
     }
+    else if(f.reset_reason == aiwc::EPISODE_END) {
+      std::cout << "Episode ended" << std::endl;
+    }
     else if(f.reset_reason == aiwc::GAME_END) {
       // game is finished. finish() will be called after you return.
       // now you have about 30 seconds before this process is killed.

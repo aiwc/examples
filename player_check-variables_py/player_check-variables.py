@@ -26,6 +26,7 @@ GOALKICK = 6
 FREEKICK = 7
 PENALTYKICK = 8
 HALFTIME = 9
+EPISODE_END = 10
 
 #game_state
 STATE_DEFAULT = 0
@@ -162,9 +163,11 @@ class Component(ApplicationSession):
                 self.printConsole("Current Score: {}".format(f['score']))
             elif (f['reset_reason'] == HALFTIME):
                 self.printConsole("Halftime")
+            elif (f['reset_reason'] == EPISODE_END):
+                self.printConsole("Episode ended.")
+##############################################################################
             elif (f['reset_reason'] == GAME_END):
                 self.printConsole("Game ended.")
-##############################################################################
                 #(virtual finish())
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:

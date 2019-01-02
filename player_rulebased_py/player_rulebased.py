@@ -33,6 +33,7 @@ GOALKICK = 6
 FREEKICK = 7
 PENALTYKICK = 8
 HALFTIME = 9
+EPISODE_END = 10
 
 #game_state
 STATE_DEFAULT = 0
@@ -524,6 +525,14 @@ class Component(ApplicationSession):
 
             self.get_coord(received_frame)
             self.find_closest_robot()
+
+            if(received_frame.reset_reason == EPISODE_END):
+                # EPISODE_END is sent instead of GAME_END when 'repeat' option is set to 'true'
+                # to mark the end of episode
+                # you can reinitialize the parameters, count the number of episodes done, etc. here
+
+                # this example does not do anything at episode end
+                pass
 
             if(received_frame.reset_reason == HALFTIME):
                 # halftime is met - from next frame, received_frame.half_passed will be set to True
