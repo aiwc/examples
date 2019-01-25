@@ -78,7 +78,7 @@ namespace aiwc {
     GAME_END       = 4,
     DEADLOCK       = 5,
     GOALKICK       = 6,
-    FREEKICK       = 7,
+    CORNERKICK       = 7,
     PENALTYKICK    = 8,
     HALFTIME       = 9,
     EPISODE_END    = 10,
@@ -92,7 +92,7 @@ namespace aiwc {
     STATE_DEFAULT = 0,
     STATE_BACKPASS = 1,
     STATE_GOALKICK = 2,
-    STATE_FREEKICK = 3,
+    STATE_CORNERKICK = 3,
     STATE_PENALTYKICK = 4,
   };
 

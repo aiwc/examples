@@ -23,7 +23,7 @@ SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
 GOALKICK = 6
-FREEKICK = 7
+CORNERKICK = 7
 PENALTYKICK = 8
 HALFTIME = 9
 EPISODE_END = 10
@@ -32,7 +32,7 @@ EPISODE_END = 10
 STATE_DEFAULT = 0
 STATE_BACKPASS = 1
 STATE_GOALKICK = 2
-STATE_FREEKICK = 3
+STATE_CORNERKICK = 3
 STATE_PENALTYKICK = 4
 
 #coordinates
@@ -189,8 +189,8 @@ class Component(ApplicationSession):
                 self.printConsole("Backpass [My backpass? {}]".format(f['ball_ownership']))
             elif (f['game_state'] == STATE_GOALKICK):
                 self.printConsole("Goalkick [My goalkick? {}]".format(f['ball_ownership']))
-            elif (f['game_state'] == STATE_FREEKICK):
-                self.printConsole("Freekick [My freekick? {}]".format(f['ball_ownership']))
+            elif (f['game_state'] == STATE_CORNERKICK):
+                self.printConsole("Cornerkick [My cornerkick? {}]".format(f['ball_ownership']))
             elif (f['game_state'] == STATE_PENALTYKICK):
                 self.printConsole("Penaltykick [My penaltykick? {}]".format(f['ball_ownership']))
 

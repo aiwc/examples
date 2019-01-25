@@ -30,7 +30,7 @@ SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
 GOALKICK = 6
-FREEKICK = 7
+CORNERKICK = 7
 PENALTYKICK = 8
 HALFTIME = 9
 EPISODE_END = 10
@@ -39,7 +39,7 @@ EPISODE_END = 10
 STATE_DEFAULT = 0
 STATE_BACKPASS = 1
 STATE_GOALKICK = 2
-STATE_FREEKICK = 3
+STATE_CORNERKICK = 3
 STATE_PENALTYKICK = 4
 
 #coordinates
@@ -573,7 +573,7 @@ class Component(ApplicationSession):
 
                 set_wheel(self, self.wheels)
 ##############################################################################
-            elif(received_frame.game_state == STATE_FREEKICK):
+            elif(received_frame.game_state == STATE_CORNERKICK):
                 #(update the robots' wheels)
                 # Robot Functions in STATE_DEFAULT
                 goalie(self, 0)

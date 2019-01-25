@@ -84,8 +84,8 @@ private:
       std::cout << "Backpass [My backpass? " << f.ball_ownership << "]" << std::endl;
     else if(f.game_state == aiwc::STATE_GOALKICK)
       std::cout << "Goalkick [My goalkick? " << f.ball_ownership << "]" << std::endl;
-    else if(f.game_state == aiwc::STATE_FREEKICK)
-      std::cout << "Freekick [My freekick? " << f.ball_ownership << "]" << std::endl;
+    else if(f.game_state == aiwc::STATE_CORNERKICK)
+      std::cout << "Cornerkick [My cornerkick? " << f.ball_ownership << "]" << std::endl;
     else if(f.game_state == aiwc::STATE_PENALTYKICK)
       std::cout << "Penaltykick [My penaltykick? " << f.ball_ownership << "]" << std::endl;
 
