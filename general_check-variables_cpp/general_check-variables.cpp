@@ -80,8 +80,8 @@ private:
 
     std::cout << "Halftime passed? " << f.half_passed << std::endl;
 
-    if(f.game_state == aiwc::STATE_BACKPASS)
-      std::cout << "Backpass [My backpass? " << f.ball_ownership << "]" << std::endl;
+    if(f.game_state == aiwc::STATE_KICKOFF)
+      std::cout << "Kickoff [My kickoff? " << f.ball_ownership << "]" << std::endl;
     else if(f.game_state == aiwc::STATE_GOALKICK)
       std::cout << "Goalkick [My goalkick? " << f.ball_ownership << "]" << std::endl;
     else if(f.game_state == aiwc::STATE_CORNERKICK)

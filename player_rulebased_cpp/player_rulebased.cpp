@@ -44,9 +44,9 @@ private:
     return std::sqrt(dx * dx + dy * dy);
   }
 
-  void velocity(std::size_t id, double l, double r)
+  void velocity(std::size_t id, double l, double r, bool max_speed = false)
   {
-    if (std::abs(l) > info.max_linear_velocity[id] || std::abs(r) > info.max_linear_velocity[id]) {
+    if (std::abs(l) > info.max_linear_velocity[id] || std::abs(r) > info.max_linear_velocity[id] || max_speed) {
       double multiplier;
       if (std::abs(l) > std::abs(r))
         multiplier = info.max_linear_velocity[id] / std::abs(l);
@@ -109,9 +109,40 @@ private:
     }
   }
 
-  void kick(std::size_t id, double x, double y)
+  void face_specific_position(std::size_t id, double x, double y)
   {
-    position(id, x, y, 0);
+    const double dx = x - cur_posture[id][X];
+    const double dy = y - cur_posture[id][Y];
+
+    const double desired_th = (dx == 0 && dy == 0) ? (PI / 2) : std::atan2(dy, dx);
+
+    angle(id, desired_th);
+  }
+
+  double direction_angle(std::size_t id, double x, double y)
+  {
+    const double dx = x - cur_posture[id][X];
+    const double dy = y - cur_posture[id][Y];
+
+    return (dx == 0 && dy == 0) ? (PI / 2) : std::atan2(dy, dx);
+  }
+
+  void angle(std::size_t id, double desired_th)
+  {
+    const double mult_ang = 0.4;
+
+    double d_th = desired_th - cur_posture[id][TH];
+    while(d_th > PI) d_th -= 2 * PI;
+    while(d_th < -PI) d_th += 2 * PI;
+
+    if(d_th > d2r(95)) {
+      d_th -= PI;
+    }
+    else if(d_th < d2r(-95)) {
+      d_th += PI;
+    }
+
+    velocity(id, -mult_ang*d_th, mult_ang*d_th);
   }
 
   void goalie(std::size_t id)
@@ -217,19 +248,22 @@ private:
 	  }
   }
 
-  int find_closest_robot(void)
+  auto find_closest_robot(void)
   {
-    //Check for distances between each non-goallie robot and the ball, return the index of robot closest to the ball.
-    int min_idx = 0;
-    double min_dist = 9999.99;
-    for (int i = 0; i < info.number_of_robots - 1; i++) {
-      auto measured_dist = dist(cur_ball[X], cur_ball[Y], cur_posture[i][X], cur_posture[i][Y]); //calculate the distance
-      if (measured_dist < min_dist) { //if this robot's distance is shorter, replace. (robot with smaller idx has priority over one with larger idx when two dists are equal)
-        min_dist = measured_dist;
-        min_idx = i;
-      }
-    }
-    return min_idx;
+    // find the closest defender and attacker and return them
+    int min_idx_def = 0;
+    if (dist(cur_ball[X], cur_ball[Y], cur_posture[1][X], cur_posture[1][Y]) < dist(cur_ball[X], cur_ball[Y], cur_posture[2][X], cur_posture[2][Y]))
+      min_idx_def = 1;
+    else
+      min_idx_def = 2;
+
+    int min_idx_atk = 0;
+    if (dist(cur_ball[X], cur_ball[Y], cur_posture[3][X], cur_posture[3][Y]) < dist(cur_ball[X], cur_ball[Y], cur_posture[4][X], cur_posture[4][Y]))
+      min_idx_atk = 3;
+    else
+      min_idx_atk = 4;
+
+    return std::make_pair(min_idx_def, min_idx_atk);
   }
 
   auto get_coord(const aiwc::frame& f)
@@ -279,27 +313,53 @@ private:
     // array for holding wheel speeds
     std::array<double, 10> ws;
 
+    int idx_def, idx_atk;
+    std::tie(idx_def, idx_atk) = find_closest_robot();
+
     // act differently based on the current game state
     switch(f.game_state) {
       case aiwc::STATE_DEFAULT:
         {
-          int idx = find_closest_robot();
-
           // Robots Functions
           goalie(0);
-          defend(1, idx, 0.2);
-          defend(2, idx, -0.2);
-          midfielder(3, idx, 0.15);
-          midfielder(4, idx, -0.15);
+          defend(1, idx_def, 0.2);
+          defend(2, idx_def, -0.2);
+          midfielder(3, idx_atk, 0.15);
+          midfielder(4, idx_atk, -0.15);
         }
         break;
-      case aiwc::STATE_BACKPASS:
+      case aiwc::STATE_KICKOFF:
         {
-          // If the ball belongs to my team, initiate backpass
+          // If the ball belongs to my team,
+          // drive the attacker to the center of the field to kick the ball
           if (f.ball_ownership)
             position(4, 0, 0);
         }
         break;
+      case aiwc::STATE_GOALKICK:
+        {
+          // If the ball belongs to my team,
+          // drive the goalie forward to kick the ball
+          if (f.ball_ownership)
+            velocity(0, info.max_linear_velocity[0], info.max_linear_velocity[0], true);
+        }
+      case aiwc::STATE_CORNERKICK:
+        {
+          // Just play as if in a default state
+          // Robots Functions
+          goalie(0);
+          defend(1, idx_def, 0.2);
+          defend(2, idx_def, -0.2);
+          midfielder(3, idx_atk, 0.15);
+          midfielder(4, idx_atk, -0.15);
+        }
+      case aiwc::STATE_PENALTYKICK:
+        {
+          // If the ball belongs to my team,
+          // driver the attacker forward to kick the ball
+          if (f.ball_ownership)
+            velocity(4, info.max_linear_velocity[4], info.max_linear_velocity[4], true);
+        }
       default:
         break;
     }
@@ -323,6 +383,7 @@ private:
     // You have less than 30 seconds before it's killed.
     std::ofstream ofs(datapath + "/result.txt");
 
+    // example) this records game time, score, and ball position for frames the program has seen throughout the game
     // print header
     ofs << "time, a.score, b.score, ";
     ofs << "ball.x, ball.y" << std::endl;

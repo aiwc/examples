@@ -90,7 +90,7 @@ namespace aiwc {
 
   enum game_state {
     STATE_DEFAULT = 0,
-    STATE_BACKPASS = 1,
+    STATE_KICKOFF = 1,
     STATE_GOALKICK = 2,
     STATE_CORNERKICK = 3,
     STATE_PENALTYKICK = 4,

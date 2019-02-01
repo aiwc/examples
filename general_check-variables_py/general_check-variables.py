@@ -30,7 +30,7 @@ EPISODE_END = 10
 
 #game_state
 STATE_DEFAULT = 0
-STATE_BACKPASS = 1
+STATE_KICKOFF = 1
 STATE_GOALKICK = 2
 STATE_CORNERKICK = 3
 STATE_PENALTYKICK = 4
@@ -185,8 +185,8 @@ class Component(ApplicationSession):
             self.printConsole("Halftime passed? {}".format(f['half_passed']))
 
         if 'game_state' in f:
-            if (f['game_state'] == STATE_BACKPASS):
-                self.printConsole("Backpass [My backpass? {}]".format(f['ball_ownership']))
+            if (f['game_state'] == STATE_KICKOFF):
+                self.printConsole("Kickoff [My kickoff? {}]".format(f['ball_ownership']))
             elif (f['game_state'] == STATE_GOALKICK):
                 self.printConsole("Goalkick [My goalkick? {}]".format(f['ball_ownership']))
             elif (f['game_state'] == STATE_CORNERKICK):

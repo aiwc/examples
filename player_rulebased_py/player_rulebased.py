@@ -22,7 +22,7 @@ import numpy as np
 
 import helper
 
-#reset_reason
+# reset_reason
 NONE = 0
 GAME_START = 1
 SCORE_MYTEAM = 2
@@ -35,14 +35,14 @@ PENALTYKICK = 8
 HALFTIME = 9
 EPISODE_END = 10
 
-#game_state
+# game_state
 STATE_DEFAULT = 0
-STATE_BACKPASS = 1
+STATE_KICKOFF = 1
 STATE_GOALKICK = 2
 STATE_CORNERKICK = 3
 STATE_PENALTYKICK = 4
 
-#coordinates
+# coordinates
 MY_TEAM = 0
 OP_TEAM = 1
 BALL = 2
@@ -52,23 +52,26 @@ TH = 2
 ACTIVE = 3
 TOUCH = 4
 
+
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
         self.resolution = resolution
         self.colorChannels = colorChannels
         # need to initialize the matrix at timestep 0
         self.ImageBuffer = np.zeros((resolution[1], resolution[0], colorChannels)) # rows, columns, colorchannels
+
     def update_image(self, received_parts):
         self.received_parts = received_parts
-        for i in range(0,len(received_parts)):
-           dec_msg = base64.b64decode(self.received_parts[i].b64, '-_') # decode the base64 message
-           np_msg = np.fromstring(dec_msg, dtype=np.uint8) # convert byte array to numpy array
-           reshaped_msg = np_msg.reshape((self.received_parts[i].height, self.received_parts[i].width, 3))
-           for j in range(0, self.received_parts[i].height): # y axis
+        for i in range(0, len(received_parts)):
+            dec_msg = base64.b64decode(self.received_parts[i].b64, '-_') # decode the base64 message
+            np_msg = np.fromstring(dec_msg, dtype=np.uint8) # convert byte array to numpy array
+            reshaped_msg = np_msg.reshape((self.received_parts[i].height, self.received_parts[i].width, 3))
+            for j in range(0, self.received_parts[i].height): # y axis
                for k in range(0, self.received_parts[i].width): # x axis
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
+                   self.ImageBuffer[j + self.received_parts[i].y, k + self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
+                   self.ImageBuffer[j + self.received_parts[i].y, k + self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j + self.received_parts[i].y, k + self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
+
 
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
@@ -77,6 +80,7 @@ class SubImage(object):
         self.width = width
         self.height = height
         self.b64 = b64
+
 
 class Frame(object):
     def __init__(self):
@@ -87,6 +91,7 @@ class Frame(object):
         self.subimages = None
         self.coordinates = None
         self.half_passed = None
+
 
 class Component(ApplicationSession):
     """
@@ -106,7 +111,7 @@ class Component(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
 
-##############################################################################
+        ##############################################################################
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
             # List: game_time, number_of_robots
@@ -203,20 +208,20 @@ class Component(ApplicationSession):
     def predict_ball_location(self, steps):
         dx = self.cur_ball[X] - self.prev_ball[X]
         dy = self.cur_ball[Y] - self.prev_ball[Y]
-        return [self.cur_ball[X]+steps*dx, self.cur_ball[Y]+steps*dy]
+        return [self.cur_ball[X] + steps * dx, self.cur_ball[Y] + steps * dy]
 
     def set_wheel_velocity(self, id, left_wheel, right_wheel, max_speed):
         multiplier = 1
 
-        if(abs(left_wheel) > self.max_linear_velocity[id] or abs(right_wheel) > self.max_linear_velocity[id] or max_speed):
+        if (abs(left_wheel) > self.max_linear_velocity[id] or abs(right_wheel) > self.max_linear_velocity[id] or max_speed):
             if (abs(left_wheel) > abs(right_wheel)):
                 multiplier = self.max_linear_velocity[id] / abs(left_wheel)
             else:
                 multiplier = self.max_linear_velocity[id] / abs(right_wheel)
 
 
-        self.wheels[2*id] = left_wheel*multiplier
-        self.wheels[2*id + 1] = right_wheel*multiplier
+        self.wheels[2 * id] = left_wheel*multiplier
+        self.wheels[2 * id + 1] = right_wheel*multiplier
 
     def position(self, id, x, y, scale, mult_lin, mult_ang, max_speed):
         damping = 0.35
@@ -226,24 +231,24 @@ class Component(ApplicationSession):
         dx = x - self.cur_posture[id][X]
         dy = y - self.cur_posture[id][Y]
         d_e = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-        desired_th = (math.pi/2) if (dx == 0 and dy == 0) else math.atan2(dy, dx)
+        desired_th = (math.pi / 2) if (dx == 0 and dy == 0) else math.atan2(dy, dx)
 
         d_th = desired_th - self.cur_posture[id][TH]
-        while(d_th > math.pi):
-            d_th -= 2*math.pi
-        while(d_th < -math.pi):
-            d_th += 2*math.pi
+        while (d_th > math.pi):
+            d_th -= 2 * math.pi
+        while (d_th < -math.pi):
+            d_th += 2 * math.pi
 
         if (d_e > 1):
-            ka = 17/90
+            ka = 17 / 90
         elif (d_e > 0.5):
-            ka = 19/90
+            ka = 19 / 90
         elif (d_e > 0.3):
-            ka = 21/90
+            ka = 21 / 90
         elif (d_e > 0.2):
-            ka = 23/90
+            ka = 23 / 90
         else:
-            ka = 25/90
+            ka = 25 / 90
 
         if (d_th > helper.degree2radian(95)):
             d_th -= math.pi
@@ -285,10 +290,8 @@ class Component(ApplicationSession):
 
         if (d_th > helper.degree2radian(95)):
             d_th -= math.pi
-            sign = -1
         elif (d_th < helper.degree2radian(-95)):
             d_th += math.pi
-            sign = -1
 
         self.set_wheel_velocity(id, -mult_ang*d_th, mult_ang*d_th, False)
 
@@ -555,9 +558,9 @@ class Component(ApplicationSession):
 
                 set_wheel(self, self.wheels)
 ##############################################################################
-            elif(received_frame.game_state == STATE_BACKPASS):
+            elif(received_frame.game_state == STATE_KICKOFF):
                 #(update the robots' wheels)
-                # Robot Functions in STATE_BACKPASS
+                # Robot Functions in STATE_KICKOFF
                 # Drive the attacker to the center of the field to kick the ball
                 if (received_frame.ball_ownership):
                     self.position(4, 0, 0, 1.4, 3.0, 0.4, False)
@@ -567,7 +570,7 @@ class Component(ApplicationSession):
             elif(received_frame.game_state == STATE_GOALKICK):
                 #(update the robots' wheels)
                 # Robot Functions in STATE_GOALKICK
-                # Driver the goalie forward to kick the ball
+                # Drive the goalie forward to kick the ball
                 if (received_frame.ball_ownership):
                     self.set_wheel_velocity(0, self.max_linear_velocity[0], self.max_linear_velocity[0], True)
 
@@ -587,17 +590,18 @@ class Component(ApplicationSession):
             elif(received_frame.game_state == STATE_PENALTYKICK):
                 #(update the robots' wheels)
                 # Robot Functions in STATE_PENALTYKICK
-                # Driver the attacker forward to kick the ball
+                # Drive the attacker forward to kick the ball
                 if (received_frame.ball_ownership):
-                    self.set_wheel_velocity(4, self.max_linear_velocity[0], self.max_linear_velocity[0], True)
+                    self.set_wheel_velocity(4, self.max_linear_velocity[4], self.max_linear_velocity[4], True)
 
                 set_wheel(self, self.wheels)
 ##############################################################################
             if(received_frame.reset_reason == GAME_END):
-                #(virtual finish() in random_walk.cpp)
-                #save your data
+                # (virtual finish() in random_walk.cpp)
+                # save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
-                    #output.write('yourvariables')
+                    # this writes a dummy result text
+                    output.write('yourvariables')
                     output.close()
                 #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
