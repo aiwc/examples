@@ -309,10 +309,7 @@ class Component(ApplicationSession):
         y_dir = abs(self.cur_posture[id][Y] - self.prev_ball[Y]) > abs(self.cur_posture[id][Y] - self.cur_ball[Y])
 
         # ball is coming closer
-        if (x_dir and y_dir):
-            return True
-        else:
-            return False
+        return (x_dir and y_dir)
 
     def shoot_chance(self, id):
         dx = self.cur_ball[X] - self.cur_posture[id][X]

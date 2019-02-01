@@ -60,10 +60,9 @@ private:
     robot_wheels[id] = {l, r};
   }
 
-  void position(std::size_t id, double x, double y, double damping = 0.35)
+  void position(std::size_t id, double x, double y, double scale, double mult_lin, double mult_ang, bool max_speed = false)
   {
-    const double mult_lin = 5.0;
-    const double mult_ang = 0.4;
+    const double damping = 0.35;
 
     const double dx = x - cur_posture[id][X];
     const double dy = y - cur_posture[id][Y];
@@ -104,8 +103,8 @@ private:
       }
       ka *= 4;
       velocity(id,
-	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) - mult_ang * ka * d_th),
-	       sign * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) + mult_ang * ka * d_th));
+	       sign * scale * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) - mult_ang * ka * d_th),
+	       sign * scale * (mult_lin * (1 / (1 + std::exp(-3 * d_e)) - damping) + mult_ang * ka * d_th), max_speed);
     }
   }
 
@@ -145,14 +144,50 @@ private:
     velocity(id, -mult_ang*d_th, mult_ang*d_th);
   }
 
+  bool in_penalty_area(double x, double y, int side)
+  {
+    if (std::abs(y) > info.penalty_area[Y] / 2)
+      return false;
+
+    if (side == MYTEAM)
+      return (x < -info.field[X] / 2 + info.penalty_area[X]);
+    else
+      return (x > info.field[X] / 2 - info.penalty_area[X]);
+  }
+
+  bool ball_coming_toward_robot(std::size_t id)
+  {
+    const bool x_dir = std::abs(cur_posture[id][X] - prev_ball[X]) > std::abs(cur_posture[id][X] - cur_ball[X]);
+    const bool y_dir = std::abs(cur_posture[id][Y] - prev_ball[Y]) > std::abs(cur_posture[id][Y] - cur_ball[Y]);
+
+    // ball is coming closer
+    return (x_dir && y_dir);
+  }
+
+  bool shoot_change(std::size_t id)
+  {
+    const double dx = cur_ball[X] - cur_posture[id][X];
+    const double dy = cur_ball[Y] - cur_posture[id][Y];
+
+    if (dx < 0)
+      return false;
+
+    const double y = (info.field[X] / 2 - cur_ball[X]) * dy / dx + cur_posture[id][Y];
+
+    if (std::abs(y) < info.goal[Y] / 2)
+      return true;
+    else
+      return false;
+  }
+
   void goalie(std::size_t id)
   {
-	const double x = -info.field[X] / 2 + info.robot_size[id] / sqrt(2) + 0.05;
+	  const double x = -info.field[X] / 2 + info.robot_size[id] / sqrt(2) + 0.05;
     const double y = std::max(std::min(cur_ball[Y],
 				       info.goal[Y] / 2 - info.robot_size[id] / sqrt(2)),
 			      -info.goal[Y] / 2 + info.robot_size[id] / sqrt(2));
     //std::cout << "Target Pos: " << x << "," << y << std::endl;
-    position(id, x, y);
+    position(id, x, y, 1.0, 5.0, 0.4);
   }
 
   void defend(std::size_t id, std::size_t idx, double offset_y)
@@ -166,11 +201,11 @@ private:
     if(cur_ball[X] > 0) {
 	    // If ball is in the upper part of the field (y>0)
 	    if(cur_ball[Y] > 0){
-        position(id, (cur_ball[X]-info.field[X]/2)/2, (std::min(cur_ball[Y],info.field[Y]/3))+offset_y);
+        position(id, (cur_ball[X]-info.field[X]/2)/2, (std::min(cur_ball[Y],info.field[Y]/3))+offset_y, 1.0, 5.0, 0.4);
 	    }
 	    // If ball is in the lower part of the field (y<0)
       else {
-	      position(id, (cur_ball[X]-info.field[X]/2)/2, (std::max(cur_ball[Y],-info.field[Y]/3))+offset_y);
+	      position(id, (cur_ball[X]-info.field[X]/2)/2, (std::max(cur_ball[Y],-info.field[Y]/3))+offset_y, 1.0, 5.0, 0.4);
       }
     }
     else {
@@ -180,12 +215,12 @@ private:
 		    if (id == idx) {
 			    position(id,
 					  (cur_ball[X] - ox),
-					  (cur_posture[id][Y] < 0)?(cur_ball[Y] + oy):(cur_ball[Y] - oy));
+					  (cur_posture[id][Y] < 0)?(cur_ball[Y] + oy):(cur_ball[Y] - oy), 1.0, 5.0, 0.4);
 		    }
 	      else {
           position(id,
 				    std::max((cur_ball[X]-0.03),min_x),
-				    (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.03):(cur_posture[id][Y]-0.03));
+				    (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.03):(cur_posture[id][Y]-0.03), 1.0, 5.0, 0.4);
 		    }
       }
 	    // If robot is behind the ball
@@ -193,12 +228,12 @@ private:
         if (id==idx) {
           position(id,
 				    cur_ball[X],
-				    (cur_posture[id][Y] < 0)?(cur_ball[Y]):(cur_ball[Y]));
+				    (cur_posture[id][Y] < 0)?(cur_ball[Y]):(cur_ball[Y]), 1.0, 5.0, 0.4);
 		    }
 	      else {
 		      position(id,
 				    std::max((cur_ball[X]-0.03),min_x),
-				    (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.03):(cur_posture[id][Y]-0.03));
+				    (cur_posture[id][Y] < 0)?(cur_posture[id][Y]+0.03):(cur_posture[id][Y]-0.03), 1.0, 5.0, 0.4);
 		    }
       }
     }
@@ -217,34 +252,34 @@ private:
       if(ball_dist < 0.04) {
 		    // if near the ball and near the opposite team goal
 		    if(goal_dist < 1.0) {
-          position(id, info.field[X] / 2, 0);
+          position(id, info.field[X] / 2, 0, 1.0, 5.0, 0.4);
 		    }
 		    else {
 		      // if near the ball bur in front of the ball
 		      if(cur_ball[X] < cur_posture[id][X] - 0.075) {
 		        double x_suggest = std::max(cur_ball[X] - 0.075, -info.field[X] / 6);
-			      position(id, x_suggest, cur_ball[Y]);
+			      position(id, x_suggest, cur_ball[Y], 1.0, 5.0, 0.4);
 			    }
 		      // if near the ball and behind the ball
 		      else {
-		        position(id, info.field[X] + info.goal[X], -info.goal[Y] / 2);
+		        position(id, info.field[X] + info.goal[X], -info.goal[Y] / 2, 1.0, 5.0, 0.4);
 	        }
 	      }
 	    }
       else {
         if (cur_ball[X] < cur_posture[id][X]) {
 		      if (cur_ball[Y] > 0)
-		        position(id, cur_ball[X] - ox, std::min((cur_ball[Y] - oy), 0.45*info.field[Y]));
+		        position(id, cur_ball[X] - ox, std::min((cur_ball[Y] - oy), 0.45*info.field[Y]), 1.0, 5.0, 0.4);
 		      else
-		        position(id, cur_ball[X] - ox, std::max((cur_ball[Y] + oy), -0.45*info.field[Y]));
+		        position(id, cur_ball[X] - ox, std::max((cur_ball[Y] + oy), -0.45*info.field[Y]), 1.0, 5.0, 0.4);
 		    }
 		    else {
-		      position(id, cur_ball[X], cur_ball[Y]);
+		      position(id, cur_ball[X], cur_ball[Y], 1.0, 5.0, 0.4);
 	      }
 	    }
 	  }
 	  else {
-		  position(id, std::max(cur_ball[X]-0.1,-0.3*info.field[Y]), cur_ball[Y]+offset_y);
+		  position(id, std::max(cur_ball[X]-0.1,-0.3*info.field[Y]), cur_ball[Y]+offset_y, 1.0, 5.0, 0.4);
 	  }
   }
 
@@ -333,7 +368,7 @@ private:
           // If the ball belongs to my team,
           // drive the attacker to the center of the field to kick the ball
           if (f.ball_ownership)
-            position(4, 0, 0);
+            position(4, 0, 0, 1.0, 5.0, 0.4);
         }
         break;
       case aiwc::STATE_GOALKICK:
