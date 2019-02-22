@@ -269,4 +269,4 @@ if __name__ == '__main__':
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
 
-    runner.run(session, auto_reconnect=True)
+    runner.run(session, auto_reconnect=False)
