@@ -19,16 +19,18 @@ public:
   }
 
 private:
+  // this function is called at the beginning of a game
   void init()
   {
-    // now you have information of the game
+    // from here, you have access to game-specific constant information such as field dimensions
+    // check example 'general_check-variables_cpp' to see what information are available
 
-    // double field_x = info.field[0];
-    // double field_y = info.field[1];
-    // double resolution_x = info.resolution[0];
-    // double resolution_y = info.resolution[1];
+    // you can initialize some customvariables here
   }
 
+  // this function is called at each timestep. in 'f', current step's information are stored
+  // check example 'general_check-variables_cpp' to see what information are available here
+  // you should implement an AI soccer algorithm that sets robot wheel velocities for each timestep here
   void update(const aiwc::frame& f)
   {
     if(f.reset_reason == aiwc::GAME_START) {
