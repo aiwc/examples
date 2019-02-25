@@ -450,7 +450,7 @@ class Component(ApplicationSession):
                     if (self.cur_ball[X] < -self.field[X] / 2 + 1.5 * self.penalty_area[X] and abs(
                             self.cur_ball[Y]) < 1.5 * self.penalty_area[Y] / 2 and abs(
                             self.cur_ball[Y] - self.cur_posture[id][Y]) < 0.2):
-                        self.face_specific_set_target_position(id, self.cur_ball[X], self.cur_ball[Y])
+                        self.face_specific_position(id, self.cur_ball[X], self.cur_ball[Y])
                     # otherwise
                     else:
                         self.set_target_position(id, x, y, 1.4, 5.0, 0.4, True)
