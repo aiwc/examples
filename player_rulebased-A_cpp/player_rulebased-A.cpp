@@ -1212,8 +1212,7 @@ private:
     if (check_receiver_condition()){
       receiver = set_receiver(_player_list);
     }
-    if (sender < 5 && receiver < 5)
-    {
+    if (sender < 5 && receiver < 5){
       pass_ball();
       for (int i = 0; i < 4; i++){
         // if player is sender
