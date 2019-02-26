@@ -950,13 +950,14 @@ class Component(ApplicationSession):
             if self.set_receiver_condition():
                 self.receiver = self.set_receiver(_player_list)
 
-            self.pass_ball()
-            # if player is sender
-            if self.sender in _player_list:
-                _player_list.remove(self.sender)
-            # if player is receiver
-            if self.receiver in _player_list:
-                _player_list.remove(self.receiver)
+            if (self.sender != None and self.receiver != None):
+                self.pass_ball()
+                # if player is sender
+                if self.sender in _player_list:
+                    _player_list.remove(self.sender)
+                # if player is receiver
+                if self.receiver in _player_list:
+                    _player_list.remove(self.receiver)
 
             default_rulebased(self, _player_list)
             return

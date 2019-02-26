@@ -1212,15 +1212,18 @@ private:
     if (check_receiver_condition()){
       receiver = set_receiver(_player_list);
     }
-    pass_ball();
-    for (int i = 0; i < 4; i++){
-      // if player is sender
-      if (sender == i + 1){
-        _player_list[i] = 99;
-      }
-      // if player is receiver
-      if (receiver == i + 1){
-        _player_list[i] = 99;
+    if (sender < 5 && receiver < 5)
+    {
+      pass_ball();
+      for (int i = 0; i < 4; i++){
+        // if player is sender
+        if (sender == i + 1){
+          _player_list[i] = 99;
+        }
+        // if player is receiver
+        if (receiver == i + 1){
+          _player_list[i] = 99;
+        }
       }
     }
     default_rulebased(_player_list);
