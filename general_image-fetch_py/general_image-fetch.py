@@ -1,10 +1,7 @@
 #!/usr/bin/python3
 
-# File: reporter_skeleton.py
-# Date: Mar. 20, 2018
-# Description: AI reporter skeleton algorithm
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
-# Current Developer: Chansol Hong (cshong@rit.kaist.ac.kr)
+# Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
 from __future__ import print_function
 
@@ -21,6 +18,7 @@ import sys
 
 import base64
 import numpy as np
+import cv2
 
 #reset_reason
 NONE = 0
@@ -29,6 +27,18 @@ SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
+GOALKICK = 6
+CORNERKICK = 7
+PENALTYKICK = 8
+HALFTIME = 9
+EPISODE_END = 10
+
+#game_state
+STATE_DEFAULT = 0
+STATE_KICKOFF = 1
+STATE_GOALKICK = 2
+STATE_CORNERKICK = 3
+STATE_PENALTYKICK = 4
 
 #coordinates
 MY_TEAM = 0
@@ -55,8 +65,8 @@ class Received_Image(object):
            for j in range(0, self.received_parts[i].height): # y axis
                for k in range(0, self.received_parts[i].width): # x axis
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
 
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
@@ -65,7 +75,7 @@ class SubImage(object):
         self.width = width
         self.height = height
         self.b64 = b64
-        
+
 class Frame(object):
     def __init__(self):
         self.time = None
@@ -73,11 +83,12 @@ class Frame(object):
         self.reset_reason = None
         self.subimages = None
         self.coordinates = None
+        self.half_passed = None
 
 class Component(ApplicationSession):
     """
-    AI Base + Commentator Skeleton
-    """ 
+    AI Base + Random Walk
+    """
 
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
@@ -94,21 +105,43 @@ class Component(ApplicationSession):
 
 ##############################################################################
         def init_variables(self, info):
-            # Here you have the information of the game (virtual init())
-            # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
-            #       {rating, name}, axle_length, resolution, ball_radius
+            # Here you have the information of the game (virtual init() in random_walk.cpp)
+            # List: game_time, number_of_robots
+            #       field, goal, penalty_area, goal_area, resolution Dimension: [x, y]
+            #       ball_radius, ball_mass,
+            #       robot_size, robot_height, axle_length, robot_body_mass, ID: [0, 1, 2, 3, 4]
+            #       wheel_radius, wheel_mass, ID: [0, 1, 2, 3, 4]
+            #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
+            self.number_of_robots = info['number_of_robots']
+
             # self.field = info['field']
-            self.field = info['field']
+            # self.goal = info['goal']
+            # self.penalty_area = info['penalty_area']
+            # self.goal_area = info['goal_area']
             self.resolution = info['resolution']
+
+            # self.ball_radius = info['ball_radius']
+            # self.ball_mass = info['ball_mass']
+
+            # self.robot_size = info['robot_size']
+            # self.robot_height = info['robot_height']
+            # self.axle_length = info['axle_length']
+            # self.robot_body_mass = info['robot_body_mass']
+
+            # self.wheel_radius = info['wheel_radius']
+            # self.wheel_mass = info['wheel_mass']
+
+            self.max_linear_velocity = info['max_linear_velocity']
+            # self.max_torque = info['max_torque']
+            # self.codewords = info['codewords']
+
             self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
-            self.paragraphs = [] 
             return
 ##############################################################################
-            
+
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -118,27 +151,27 @@ class Component(ApplicationSession):
                 self.sub = yield self.subscribe(self.on_event, args.key)
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
-               
+
         init_variables(self, info)
-        
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
-            self.printConsole("I am the reporter for this game!")
-            
+            self.printConsole("I am ready for the game!")
+
     @inlineCallbacks
-    def on_event(self, f):        
+    def on_event(self, f):
 
         @inlineCallbacks
-        def set_report(self, report):
-            yield self.call(u'aiwc.report', args.key, report)
+        def set_wheel(self, robot_wheels):
+            yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
-        
+
         # initiate empty frame
         received_frame = Frame()
-        received_subimages = []        
+        received_subimages = []
 
         if 'time' in f:
             received_frame.time = f['time']
@@ -146,6 +179,8 @@ class Component(ApplicationSession):
             received_frame.score = f['score']
         if 'reset_reason' in f:
             received_frame.reset_reason = f['reset_reason']
+        if 'half_passed' in f:
+            received_frame.half_passed = f['half_passed']
         if 'subimages' in f:
             received_frame.subimages = f['subimages']
             # Comment the next lines if you don't need to use the image information
@@ -155,70 +190,54 @@ class Component(ApplicationSession):
                                                    s['w'],
                                                    s['h'],
                                                    s['base64'].encode('utf8')))
+            # This function updates the image data stored in 'self.image.ImageBuffer'
+            # Do not directly modify 'self.image.ImageBuffer' image updates are done in a way that
+            # only the parts of the old frame that have been changed are overwritten by the new data
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']            
+            received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-            
+
         #self.printConsole(received_frame.time)
         #self.printConsole(received_frame.score)
         #self.printConsole(received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
-        
+
         if (self.end_of_frame):
-            #self.printConsole("end of frame")
-
-            # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[BALL][X])
-            #self.printConsole(received_frame.coordinates[BALL][Y])
-
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-            if (received_frame.reset_reason == GAME_END):
+##############################################################################
+            #(virtual update())
+            # OpenCV uses [0, 1] range for describing an RGB image stored in a numpy array
+            # that ImageBuffer's [0, 255] range should be transformed to [0, 1]
+            cv2.imshow('image', self.image.ImageBuffer / 255.0)
+            cv2.waitKey(1)
+##############################################################################
 
-                if (received_frame.score[0] > received_frame.score[1]):
-                    self.paragraphs.append("A Team won")
-                elif (received_frame.score[0] > received_frame.score[1]):
-                    self.paragraphs.append("B Team won")
-                else:
-                    self.paragraphs.append("The game ended in a draw")
-
-                self.paragraphs.append("It was really a great match!")
-
-                set_report(self, self.paragraphs)
-
+            if(received_frame.reset_reason == GAME_END):
 ##############################################################################
                 #(virtual finish())
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()
-                #unsubscribe; reset or leave  
+                #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
                 try:
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
-            
+
             self.end_of_frame = False
 
 
     def onDisconnect(self):
         if reactor.running:
             reactor.stop()
+
 
 if __name__ == '__main__':
 
@@ -231,26 +250,26 @@ if __name__ == '__main__':
 
     def to_unicode(s):
         return unicode(s, "utf-8")
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument("server_ip", type=to_unicode)
     parser.add_argument("port", type=to_unicode)
     parser.add_argument("realm", type=to_unicode)
     parser.add_argument("key", type=to_unicode)
     parser.add_argument("datapath", type=to_unicode)
-    
+
     args = parser.parse_args()
-    
+
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
-    
+
     # create a Wamp session object
     session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
-    
+
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
-    
-    runner.run(session, auto_reconnect=True)
+
+    runner.run(session, auto_reconnect=False)

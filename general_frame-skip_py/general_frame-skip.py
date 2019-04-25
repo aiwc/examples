@@ -12,8 +12,13 @@ from autobahn.wamp.serializer import MsgPackSerializer
 from autobahn.wamp.types import ComponentConfig
 from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
+from time import sleep
+
 import argparse
 import sys
+
+import threading
+import queue
 
 #reset_reason
 NONE = 0
@@ -73,7 +78,7 @@ class Component(ApplicationSession):
             #       wheel_radius, wheel_mass, ID: [0, 1, 2, 3, 4]
             #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
-            self.number_of_robots = info['number_of_robots']
+            # self.number_of_robots = info['number_of_robots']
 
             # self.field = info['field']
             # self.goal = info['goal']
@@ -92,13 +97,53 @@ class Component(ApplicationSession):
             # self.wheel_radius = info['wheel_radius']
             # self.wheel_mass = info['wheel_mass']
 
-            self.max_linear_velocity = info['max_linear_velocity']
+            # self.max_linear_velocity = info['max_linear_velocity']
             # self.max_torque = info['max_torque']
             # self.codewords = info['codewords']
 
+            self.q = queue.Queue()
+
             return
 ##############################################################################
+        def frame_skip():
+            # this function runs in the behavior thread to do operations
+            local_queue = queue.Queue()
+            while True:
+                local_queue.put(self.q.get())
+                while not self.q.empty():
+                    local_queue.put(self.q.get())
+                self.q.task_done()
 
+                # you can ignore all frames but the most recent one,
+                # or keep only resetting frames,
+                # or do whatever you want.
+
+                # this example keeps only the most recent frame.
+                recent_frame = local_queue.get()
+                while not local_queue.empty():
+                    recent_frame = local_queue.get()
+                choose_behavior_which_takes_really_long_time(self, recent_frame)
+
+                if(recent_frame['reset_reason'] == GAME_END):
+                    break;
+            return
+
+        def choose_behavior_which_takes_really_long_time(self, frame):
+            @inlineCallbacks
+            def set_wheel(self, robot_wheels):
+                yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
+                return
+
+            if(frame['reset_reason'] == GAME_END):
+                return
+
+            # heavy operations
+            sleep(3)
+
+            # now send data to the server.
+            self.printConsole("Long operation ended.")
+            return
+##############################################################################
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -111,6 +156,9 @@ class Component(ApplicationSession):
 
         init_variables(self, info)
 
+        self.behavior_thread = threading.Thread(target=frame_skip)
+        self.behavior_thread.start()
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
@@ -120,26 +168,17 @@ class Component(ApplicationSession):
 
     @inlineCallbacks
     def on_event(self, f):
-
-        @inlineCallbacks
-        def set_wheel(self, robot_wheels):
-            yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
-            return
+        # the main thread only enqueues the received frame into the frame queue
+        # behavior_thread will handle the frames
+        self.q.put(f)
 
         if 'reset_reason' in f:
-            if (f['reset_reason'] == GAME_START):
-                self.printConsole("Game started : " + str(f['time']))
-            if (f['reset_reason'] == SCORE_MYTEAM):
-                self.printConsole("My team scored : " + str(f['time']))
-            elif (f['reset_reason'] == SCORE_OPPONENT):
-                self.printConsole("Opponent scored : " + str(f['time']))
-            if (f['reset_reason'] == EPISODE_END):
-                self.printConsole("Episode ended.")
             if (f['reset_reason'] == GAME_END):
                 self.printConsole("Game ended.")
 
 ##############################################################################
                 #(virtual finish())
+                self.behavior_thread.join()
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
@@ -150,31 +189,6 @@ class Component(ApplicationSession):
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
-##############################################################################
-
-        # if 'coordinates' in f:
-            # myteam = f['coordinates'][MY_TEAM]
-            # opponent = f['coordinates'][OP_TEAM]
-            # ball =  f['coordinates'][BALL]
-
-            # myteam0_x = f['coordinates'][MY_TEAM][0][X]
-            # myteam0_y = f['coordinates'][MY_TEAM][0][Y]
-            # myteam0_th = f['coordinates'][MY_TEAM][0][TH]
-            # myteam0_act = f['coordinates'][MY_TEAM][0][ACTIVE]
-            # myteam0_tou = f['coordinates'][MY_TEAM][0][TOUCH]
-            # if (myteam0_tou == True):
-            #   self.printConsole("My robot 0 touched the ball!")
-
-        if 'EOF' in f:
-            if (f['EOF']):
-
-##############################################################################
-                #(virtual update())
-                wheels = []
-                for i in range(self.number_of_robots):
-                    wheels.append(self.max_linear_velocity[i])
-                    wheels.append(self.max_linear_velocity[i])
-                set_wheel(self, wheels)
 ##############################################################################
 
     def onDisconnect(self):

@@ -28,6 +28,8 @@ private:
   void init()
   {
     // initialize variables to store image
+    // do not directly modify 'img_bgr' image updates are done in a way that
+    // only the parts of the old frame that have been changed are overwritten by the new data
     img_bgr.clear();
     img_bgr.resize(info.resolution[X] * info.resolution[Y] * BYTES_PER_PIXEL);
     cv_img = cv::Mat(info.resolution[Y], info.resolution[X], CV_8UC3, &img_bgr[0]);
@@ -47,11 +49,14 @@ private:
     // subimages are small regions on the new image
     // where some changes occurred since the last frame
     for(const auto& sub : f.subimages) {
+      // the subframe data are encoded with base64 scheme
       const auto decoded = cppcodec::base64_rfc4648::decode(sub.base64);
       assert(decoded.size() == (sub.w * sub.h * BYTES_PER_PIXEL));
 
       auto* decoded_ptr = &decoded[0];
 
+      // paste the fetched subframe into the frame data you already have
+      // to update the image frame
       for(std::size_t y = 0; y < sub.h; ++y) {
         std::memcpy(pixel_ptr(img_bgr, sub.x, sub.y + y),
                     decoded_ptr,

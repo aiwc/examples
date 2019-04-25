@@ -19,7 +19,7 @@ namespace aiwc {
     double x;
     double y;
     double th;
-    bool is_active;
+    bool active;
     bool touch;
   };
 
@@ -45,15 +45,22 @@ namespace aiwc {
   {
     std::array<double, 2> field;        // [x, y]
     std::array<double, 2> goal;         // [x, y]
-    std::array<double, 2> goal_area;    // [x, y]
     std::array<double, 2> penalty_area; // [x, y]
+    std::array<double, 2> goal_area;    // [x, y]
 
     double ball_radius;         // m
-    double robot_size;          // m
-    double robot_height;        // m
-    double robot_radius;        // m
-    double axle_length;         // m
-    double max_linear_velocity; // m/s
+    double ball_mass;           // kg
+
+    std::array<double, 5> robot_size;          // [m, m, m, m, m]
+    std::array<double, 5> robot_height;        // [m, m, m, m, m]
+    std::array<double, 5> axle_length;         // [m, m, m, m, m]
+    std::array<double, 5> robot_body_mass;     // [kg, kg, kg, kg, kg]
+
+    std::array<double, 5> wheel_radius;        // [m, m, m, m, m]
+    std::array<double, 5> wheel_mass;          // [kg, kg, kg, kg, kg]
+
+    std::array<double, 5> max_linear_velocity; // [m/s, m/s, m/s, m/s, m/s]
+    std::array<double, 5> max_torque;          // [N*m, N*m, N*m, N*m, N*m]
 
     std::array<std::size_t, 2> resolution; // [x, y]
     std::size_t number_of_robots;
@@ -70,10 +77,23 @@ namespace aiwc {
     SCORE_OPPONENT = 3,
     GAME_END       = 4,
     DEADLOCK       = 5,
+    GOALKICK       = 6,
+    CORNERKICK       = 7,
+    PENALTYKICK    = 8,
+    HALFTIME       = 9,
+    EPISODE_END    = 10,
 
     // aliases
     SCORE_ATEAM = SCORE_MYTEAM,
     SCORE_BTEAM = SCORE_OPPONENT,
+  };
+
+  enum game_state {
+    STATE_DEFAULT = 0,
+    STATE_KICKOFF = 1,
+    STATE_GOALKICK = 2,
+    STATE_CORNERKICK = 3,
+    STATE_PENALTYKICK = 4,
   };
 
   struct subimage
@@ -91,10 +111,12 @@ namespace aiwc {
     double time;
     std::array<std::size_t, 2> score; // [my team, opponent] for player, [a team, b team] for commentator
     std::size_t reset_reason;
+    std::size_t game_state;
+    bool ball_ownership;
+    bool half_passed;
 
     std::vector<subimage> subimages;
 
-    // coordinate is optional.
     boost::optional<coordinates> opt_coordinates;
   };
 

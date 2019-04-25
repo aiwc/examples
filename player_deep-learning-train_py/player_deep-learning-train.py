@@ -35,6 +35,18 @@ SCORE_MYTEAM = 2
 SCORE_OPPONENT = 3
 GAME_END = 4
 DEADLOCK = 5
+GOALKICK = 6
+CORNERKICK = 7
+PENALTYKICK = 8
+HALFTIME = 9
+EPISODE_END = 10
+
+#game_state
+STATE_DEFAULT = 0
+STATE_KICKOFF = 1
+STATE_GOALKICK = 2
+STATE_CORNERKICK = 3
+STATE_PENALTYKICK = 4
 
 #coordinates
 MY_TEAM = 0
@@ -64,9 +76,9 @@ class Received_Image(object):
            for j in range(0, self.received_parts[i].height): # y axis
                for k in range(0, self.received_parts[i].width): # x axis
                    self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel     
-                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel            
-    
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
+
 class SubImage(object):
     def __init__(self, x, y, width, height, b64):
         self.x = x
@@ -74,7 +86,7 @@ class SubImage(object):
         self.width = width
         self.height = height
         self.b64 = b64
-        
+
 class Frame(object):
     def __init__(self):
         self.time = None
@@ -82,11 +94,12 @@ class Frame(object):
         self.reset_reason = None
         self.subimages = None
         self.coordinates = None
+        self.half_passed = None
 
 class Component(ApplicationSession):
     """
     AI Base + Deep Q Network example
-    """ 
+    """
 
     def __init__(self, config):
         ApplicationSession.__init__(self, config)
@@ -104,36 +117,59 @@ class Component(ApplicationSession):
 ##############################################################################
         def init_variables(self, info):
             # Here you have the information of the game (virtual init() in random_walk.cpp)
-            # List: game_time, goal, number_of_robots, penalty_area, codewords,
-            #       robot_height, robot_radius, max_linear_velocity, field, team_info,
-            #       {rating, name}, axle_length, resolution, ball_radius
+            # List: game_time, number_of_robots
+            #       field, goal, penalty_area, goal_area, resolution Dimension: [x, y]
+            #       ball_radius, ball_mass,
+            #       robot_size, robot_height, axle_length, robot_body_mass, ID: [0, 1, 2, 3, 4]
+            #       wheel_radius, wheel_mass, ID: [0, 1, 2, 3, 4]
+            #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
+            # self.number_of_robots = info['number_of_robots']
+
             # self.field = info['field']
-            self.max_linear_velocity = info['max_linear_velocity']
+            # self.goal = info['goal']
+            # self.penalty_area = info['penalty_area']
+            # self.goal_area = info['goal_area']
             self.resolution = info['resolution']
+
+            # self.ball_radius = info['ball_radius']
+            # self.ball_mass = info['ball_mass']
+
+            # self.robot_size = info['robot_size']
+            # self.robot_height = info['robot_height']
+            # self.axle_length = info['axle_length']
+            # self.robot_body_mass = info['robot_body_mass']
+
+            # self.wheel_radius = info['wheel_radius']
+            # self.wheel_mass = info['wheel_mass']
+
+            self.max_linear_velocity = info['max_linear_velocity']
+            # self.max_torque = info['max_torque']
+            # self.codewords = info['codewords']
+
             self.colorChannels = 3 # nf
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
-            self.D = [] # Replay Memory 
+            self.D = [] # Replay Memory
             self.update = 100 # Update Target Network
-            self.epsilon = 1.0 # Initial epsilon value 
+            self.epsilon = 1.0 # Initial epsilon value
             self.final_epsilon = 0.05 # Final epsilon value
             self.dec_epsilon = 0.05 # Decrease rate of epsilon for every generation
             self.step_epsilon = 20000 # Number of iterations for every generation
             self.observation_steps = 5000 # Number of iterations to observe before training every generation
             self.save_every_steps = 5000 # Save checkpoint
             self.num_actions = 11 # Number of possible possible actions
-            self._frame = 0 
+            self._frame = 0
             self._iterations = 0
             self.minibatch_size = 64
             self.gamma = 0.99
             self.sqerror = 100 # Initial sqerror value
             self.Q = NeuralNetwork(None, False, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
             self.Q_ = NeuralNetwork(self.Q, False, True)
-            self.wheels = [0 for _ in range(10)]   
+            self.wheels = [0 for _ in range(10)]
             return
 ##############################################################################
-            
+
         try:
             info = yield self.call(u'aiwc.get_info', args.key)
         except Exception as e:
@@ -143,18 +179,18 @@ class Component(ApplicationSession):
                 self.sub = yield self.subscribe(self.on_event, args.key)
             except Exception as e2:
                 self.printConsole("Error: {}".format(e2))
-               
+
         init_variables(self, info)
-        
+
         try:
             yield self.call(u'aiwc.ready', args.key)
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
             self.printConsole("I am ready for the game!")
-            
+
     @inlineCallbacks
-    def on_event(self, f):        
+    def on_event(self, f):
 
         @inlineCallbacks
         def set_wheel(self, robot_wheels):
@@ -206,20 +242,22 @@ class Component(ApplicationSession):
                 self.wheels[2*robot_id] = 0
                 self.wheels[2*robot_id + 1] = 0
                 # Do not move
-        
+
         def distance(x1, x2, y1, y2):
             return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
 
         # initiate empty frame
         received_frame = Frame()
         received_subimages = []
-        
+
         if 'time' in f:
             received_frame.time = f['time']
         if 'score' in f:
             received_frame.score = f['score']
         if 'reset_reason' in f:
             received_frame.reset_reason = f['reset_reason']
+        if 'half_passed' in f:
+            received_frame.half_passed = f['half_passed']
         if 'subimages' in f:
             received_frame.subimages = f['subimages']
             # Comment the next lines if you don't need to use the image information
@@ -228,35 +266,20 @@ class Component(ApplicationSession):
                                                    s['y'],
                                                    s['w'],
                                                    s['h'],
-                                                   s['base64'].encode('utf8')))   
+                                                   s['base64'].encode('utf8')))
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']            
+            received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-            
+
         #self.printConsole(received_frame.time)
         #self.printConsole(received_frame.score)
         #self.printConsole(received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
-        
-        if (self.end_of_frame):
 
-            # How to get the robot and ball coordinates: (ROBOT_ID can be 0,1,2,3,4)
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][X])            
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[MY_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][X])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][Y])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TH])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][ACTIVE])
-            #self.printConsole(received_frame.coordinates[OP_TEAM][ROBOT_ID][TOUCH])
-            #self.printConsole(received_frame.coordinates[BALL][X])
-            #self.printConsole(received_frame.coordinates[BALL][Y])
-	    
-            self._frame += 1        
+        if (self.end_of_frame):
+            self._frame += 1
 
             # To get the image at the end of each frame use the variable:
             #self.printConsole(self.image.ImageBuffer)
@@ -276,8 +299,8 @@ class Component(ApplicationSession):
             #final_img = np.array(resized_img)
 
             # Example: using the normalized coordinates for robot 0 and ball
-            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2), 
-                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2), 
+            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2),
+                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2),
                         round(received_frame.coordinates[BALL][Y]/1.35, 2)]
 
             # Action
@@ -292,7 +315,7 @@ class Component(ApplicationSession):
 
             # Update Replay Memory
             self.D.append([np.array(position), action, reward])
-##############################################################################            
+##############################################################################
 
 ##############################################################################
 
@@ -300,7 +323,7 @@ class Component(ApplicationSession):
             if len(self.D) >= self.observation_steps:
                 self._iterations += 1
                 a = np.zeros((self.minibatch_size, self.num_actions))
-                r = np.zeros((self.minibatch_size, 1)) 
+                r = np.zeros((self.minibatch_size, 1))
                 batch_phy = np.zeros((self.minibatch_size, 5)) # depends on what is your input state
                 batch_phy_ = np.zeros((self.minibatch_size, 5)) # depends on what is your input state
                 for i in range(self.minibatch_size):
@@ -313,7 +336,7 @@ class Component(ApplicationSession):
                 self.sqerror = self.Q.TrainNetwork(batch_phy, a, y_value)
                 if self._iterations % 100 == 0: # Print information every 100 iterations
                     self.printConsole("Squared Error(Episode" + str(self._iterations) + "): " + str(self.sqerror))
-                    self.printConsole("Epsilon: " + str(self.epsilon)) 
+                    self.printConsole("Epsilon: " + str(self.epsilon))
                 if self._iterations % self.update == 0:
                     self.Q_.Copy(self.Q)
                     self.printConsole("Copied Target Network")
@@ -335,23 +358,23 @@ class Component(ApplicationSession):
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
                     output.close()
-                #unsubscribe; reset or leave  
+                #unsubscribe; reset or leave
                 yield self.sub.unsubscribe()
                 try:
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
 ##############################################################################
-            
+
             self.end_of_frame = False
 
-    
+
     def onDisconnect(self):
         if reactor.running:
             reactor.stop()
 
 if __name__ == '__main__':
-    
+
     try:
         unicode
     except NameError:
@@ -368,19 +391,19 @@ if __name__ == '__main__':
     parser.add_argument("realm", type=to_unicode)
     parser.add_argument("key", type=to_unicode)
     parser.add_argument("datapath", type=to_unicode)
-    
+
     args = parser.parse_args()
-    
+
     ai_sv = "rs://" + args.server_ip + ":" + args.port
     ai_realm = args.realm
-    
+
     # create a Wamp session object
     session = Component(ComponentConfig(ai_realm, {}))
 
     # initialize the msgpack serializer
     serializer = MsgPackSerializer()
-    
+
     # use Wamp-over-rawsocket
     runner = ApplicationRunner(ai_sv, ai_realm, serializers=[serializer])
-    
+
     runner.run(session, auto_reconnect=False)

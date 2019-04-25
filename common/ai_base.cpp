@@ -94,7 +94,10 @@ namespace msgpack {
         {
           enum {
             FIELD, GOAL, PENALTY_AREA, GOAL_AREA,
-            BALL_RADIUS, ROBOT_SIZE, ROBOT_HEIGHT, ROBOT_RADIUS, AXLE_LENGTH, MAX_LIN_VEL,
+            BALL_RADIUS, BALL_MASS,
+            ROBOT_SIZE, ROBOT_HEIGHT, AXLE_LENGTH, ROBOT_BODY_MASS,
+            WHEEL_RADIUS, WHEEL_MASS,
+            MAX_LINEAR_VELOCITY, MAX_TORQUE,
             RESOLUTION, NUMBER_OF_ROBOTS, CODEWORDS, GAME_TIME, TEAM_INFO,
           };
 
@@ -106,11 +109,15 @@ namespace msgpack {
             m.find("penalty_area"),
             m.find("goal_area"),
             m.find("ball_radius"),
+            m.find("ball_mass"),
             m.find("robot_size"),
             m.find("robot_height"),
-            m.find("robot_radius"),
             m.find("axle_length"),
+            m.find("robot_body_mass"),
+            m.find("wheel_radius"),
+            m.find("wheel_mass"),
             m.find("max_linear_velocity"),
+            m.find("max_torque"),
             m.find("resolution"),
             m.find("number_of_robots"),
             m.find("codewords"),
@@ -127,11 +134,15 @@ namespace msgpack {
                               its[PENALTY_AREA]->second.as<decltype(aiwc::game_info::penalty_area)>(),
                               its[GOAL_AREA]->second.as<decltype(aiwc::game_info::goal_area)>(),
                               its[BALL_RADIUS]->second.as<decltype(aiwc::game_info::ball_radius)>(),
+                              its[BALL_MASS]->second.as<decltype(aiwc::game_info::ball_mass)>(),
                               its[ROBOT_SIZE]->second.as<decltype(aiwc::game_info::robot_size)>(),
                               its[ROBOT_HEIGHT]->second.as<decltype(aiwc::game_info::robot_height)>(),
-                              its[ROBOT_RADIUS]->second.as<decltype(aiwc::game_info::robot_radius)>(),
                               its[AXLE_LENGTH]->second.as<decltype(aiwc::game_info::axle_length)>(),
-                              its[MAX_LIN_VEL]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
+                              its[ROBOT_BODY_MASS]->second.as<decltype(aiwc::game_info::robot_body_mass)>(),
+                              its[WHEEL_RADIUS]->second.as<decltype(aiwc::game_info::wheel_radius)>(),
+                              its[WHEEL_MASS]->second.as<decltype(aiwc::game_info::wheel_mass)>(),
+                              its[MAX_LINEAR_VELOCITY]->second.as<decltype(aiwc::game_info::max_linear_velocity)>(),
+                              its[MAX_TORQUE]->second.as<decltype(aiwc::game_info::max_torque)>(),
                               its[RESOLUTION]->second.as<decltype(aiwc::game_info::resolution)>(),
                               its[NUMBER_OF_ROBOTS]->second.as<decltype(aiwc::game_info::number_of_robots)>(),
                               its[CODEWORDS]->second.as<decltype(aiwc::game_info::codewords)>(),
@@ -304,9 +315,12 @@ namespace aiwc {
           const auto& key = kv.key.as<std::string>();
           const auto& value = kv.val;
 
-          if(key == "time")              { f.time            = value.convert(); }
-          else if(key == "score")        { f.score           = value.convert(); }
-          else if(key == "reset_reason") { f.reset_reason    = value.convert(); }
+          if(key == "time")                { f.time            = value.convert(); }
+          else if(key == "score")          { f.score           = value.convert(); }
+          else if(key == "reset_reason")   { f.reset_reason    = value.convert(); }
+          else if(key == "game_state")     { f.game_state      = value.convert(); }
+          else if(key == "ball_ownership") { f.ball_ownership  = value.convert(); }
+          else if(key == "half_passed")    { f.half_passed     = value.convert(); }
           else if(key == "subimages") {
             std::vector<aiwc::subimage> subs = value.convert();
             std::copy(std::make_move_iterator(subs.begin()),

@@ -34,12 +34,11 @@ private:
     if(f.time >= last_changed + dur) {
       last_changed = f.time;
       std::mt19937 rng{boost::random_device{}()};
-      std::uniform_real_distribution<double> dist(-info.max_linear_velocity, info.max_linear_velocity);
+      std::uniform_real_distribution<double> dist(-1, 1);
 
       std::array<double, 10> wheels;
-      for(auto& s : wheels) {
-        s = dist(rng);
-      }
+      for(int i = 0; i < 2*info.number_of_robots; i++)
+        wheels[i] = info.max_linear_velocity[i/2]*dist(rng);
       set_wheel(wheels);
     }
   }

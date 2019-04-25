@@ -25,12 +25,14 @@ public:
 private:
   void init()
   {
+    // initialize a thread that will do the main job of data analysis, decision making, etc.
     behavior_thread = std::thread([&]() { frame_skip(); });
   }
 
   void update(const aiwc::frame& f)
   {
     std::unique_lock<std::mutex> lck(frames.m);
+    // whenever a frame is received from the server, the frame is pushed into a queue
     frames.q.push_back(f);
     lck.unlock();
     frames.cv.notify_one();
@@ -38,11 +40,14 @@ private:
 
   void frame_skip()
   {
+    // this function runs in the behavior thread to do operations
     for(;;) {
       std::unique_lock<std::mutex> lck(frames.m);
+      // wait until some data appears in the queue
       frames.cv.wait(lck, [&]() { return !frames.q.empty(); });
 
       std::vector<aiwc::frame> local_queue;
+      // take the data into a local queue and empty the shared queue
       local_queue.swap(frames.q);
       lck.unlock();
 
