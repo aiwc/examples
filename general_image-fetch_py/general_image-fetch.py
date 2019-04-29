@@ -3,10 +3,6 @@
 # Author(s): Luiz Felipe Vecchietti, Chansol Hong, Inbae Jeong
 # Maintainer: Chansol Hong (cshong@rit.kaist.ac.kr)
 
-# Additional Information:
-# Train Robot 0 to chase the ball from its coordinates, orientation and the ball coordinates
-# GameTime and Deadlock duration can be setup on Webots depending on the number of steps and training details
-
 from __future__ import print_function
 
 from twisted.internet import reactor
@@ -18,15 +14,11 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 import argparse
 import random
-import math
-import os
 import sys
 
 import base64
 import numpy as np
-
-#from PIL import Image
-from dqn_nn import NeuralNetwork
+import cv2
 
 #reset_reason
 NONE = 0
@@ -57,9 +49,6 @@ Y = 1
 TH = 2
 ACTIVE = 3
 TOUCH = 4
-
-#path to your checkpoint
-CHECKPOINT = os.path.join(os.path.dirname(__file__), 'dqn.ckpt')
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -98,7 +87,7 @@ class Frame(object):
 
 class Component(ApplicationSession):
     """
-    AI Base + Deep Q Network example
+    AI Base + Random Walk
     """
 
     def __init__(self, config):
@@ -124,7 +113,7 @@ class Component(ApplicationSession):
             #       wheel_radius, wheel_mass, ID: [0, 1, 2, 3, 4]
             #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
-            # self.number_of_robots = info['number_of_robots']
+            self.number_of_robots = info['number_of_robots']
 
             # self.field = info['field']
             # self.goal = info['goal']
@@ -147,26 +136,9 @@ class Component(ApplicationSession):
             # self.max_torque = info['max_torque']
             # self.codewords = info['codewords']
 
-            self.colorChannels = 3 # nf
+            self.colorChannels = 3
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
-            self.D = [] # Replay Memory
-            self.update = 100 # Update Target Network
-            self.epsilon = 1.0 # Initial epsilon value
-            self.final_epsilon = 0.05 # Final epsilon value
-            self.dec_epsilon = 0.05 # Decrease rate of epsilon for every generation
-            self.step_epsilon = 20000 # Number of iterations for every generation
-            self.observation_steps = 5000 # Number of iterations to observe before training every generation
-            self.save_every_steps = 5000 # Save checkpoint
-            self.num_actions = 11 # Number of possible possible actions
-            self._frame = 0
-            self._iterations = 0
-            self.minibatch_size = 64
-            self.gamma = 0.99
-            self.sqerror = 100 # Initial sqerror value
-            self.Q = NeuralNetwork(None, False, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
-            self.Q_ = NeuralNetwork(self.Q, False, True)
-            self.wheels = [0 for _ in range(10)]
             return
 ##############################################################################
 
@@ -197,55 +169,6 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
 
-        def set_action(robot_id, action_number):
-            if action_number == 0:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.75
-                # Go Forward with fixed velocity
-            elif action_number == 1:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.5
-                # Turn
-            elif action_number == 2:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.25
-                # Turn
-            elif action_number == 3:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0
-                # Turn
-            elif action_number == 4:
-                self.wheels[2*robot_id] = 0.5
-                self.wheels[2*robot_id + 1] = 75
-                # Turn
-            elif action_number == 5:
-                self.wheels[2*robot_id] = 0.25
-                self.wheels[2*robot_id + 1] = 0.75
-                # Turn
-            elif action_number == 6:
-                self.wheels[2*robot_id] = 0
-                self.wheels[2*robot_id + 1] = 0.75
-                # Turn
-            elif action_number == 7:
-                self.wheels[2*robot_id] = -0.75
-                self.wheels[2*robot_id + 1] = -0.75
-                # Go Backward with fixed velocity
-            elif action_number == 8:
-                self.wheels[2*robot_id] = -0.1
-                self.wheels[2*robot_id + 1] = 0.1
-                # Spin
-            elif action_number == 9:
-                self.wheels[2*robot_id] = 0.1
-                self.wheels[2*robot_id + 1] = -0.1
-                # Spin
-            elif action_number == 10:
-                self.wheels[2*robot_id] = 0
-                self.wheels[2*robot_id + 1] = 0
-                # Do not move
-
-        def distance(x1, x2, y1, y2):
-            return math.sqrt(math.pow(x1 - x2, 2) + math.pow(y1 - y2, 2))
-
         # initiate empty frame
         received_frame = Frame()
         received_subimages = []
@@ -267,6 +190,9 @@ class Component(ApplicationSession):
                                                    s['w'],
                                                    s['h'],
                                                    s['base64'].encode('utf8')))
+            # This function updates the image data stored in 'self.image.ImageBuffer'
+            # Do not directly modify 'self.image.ImageBuffer' image updates are done in a way that
+            # only the parts of the old frame that have been changed are overwritten by the new data
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
             received_frame.coordinates = f['coordinates']
@@ -279,81 +205,20 @@ class Component(ApplicationSession):
         #self.printConsole(self.end_of_frame)
 
         if (self.end_of_frame):
-            self._frame += 1
-
             # To get the image at the end of each frame use the variable:
-            #self.printConsole(self.image.ImageBuffer)
+            # self.image.ImageBuffer
 
 ##############################################################################
             #(virtual update())
-
-            # Reward
-            reward = math.exp(-10*(distance(received_frame.coordinates[MY_TEAM][0][X], received_frame.coordinates[BALL][X], received_frame.coordinates[MY_TEAM][0][Y], received_frame.coordinates[BALL][Y])/4.1))
-
-            # State
-
-            # If you want to use the image as the input for your network
-            # You can use pillow: PIL.Image to get and resize the input frame as follows
-            #img = Image.fromarray((self.image.ImageBuffer/255).astype('uint8'), 'RGB') # Get normalized image as a PIL.Image object
-            #resized_img = img.resize((NEW_X,NEW_Y))
-            #final_img = np.array(resized_img)
-
-            # Example: using the normalized coordinates for robot 0 and ball
-            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2),
-                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2),
-                        round(received_frame.coordinates[BALL][Y]/1.35, 2)]
-
-            # Action
-            if np.random.rand() < self.epsilon:
-                action = random.randint(0,10)
-            else:
-                action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
-
-            # Set robot wheels
-            set_action(0, action)
-            set_wheel(self, self.wheels)
-
-            # Update Replay Memory
-            self.D.append([np.array(position), action, reward])
-##############################################################################
-
-##############################################################################
-
-            # Training!
-            if len(self.D) >= self.observation_steps:
-                self._iterations += 1
-                a = np.zeros((self.minibatch_size, self.num_actions))
-                r = np.zeros((self.minibatch_size, 1))
-                batch_phy = np.zeros((self.minibatch_size, 5)) # depends on what is your input state
-                batch_phy_ = np.zeros((self.minibatch_size, 5)) # depends on what is your input state
-                for i in range(self.minibatch_size):
-                    index = np.random.randint(len(self.D)-1) # Sample a random index from the replay memory
-                    a[i] = [0 if j !=self.D[index][1] else 1 for j in range(self.num_actions)]
-                    r[i] = self.D[index][2]
-                    batch_phy[i] = self.D[index][0].reshape((1,5)) # depends on what is your input state
-                    batch_phy_[i] = self.D[index+1][0].reshape((1,5)) # depends on what is your input state
-                y_value = r + self.gamma*np.max(self.Q_.IterateNetwork(batch_phy_), axis=1).reshape((self.minibatch_size,1))
-                self.sqerror = self.Q.TrainNetwork(batch_phy, a, y_value)
-                if self._iterations % 100 == 0: # Print information every 100 iterations
-                    self.printConsole("Squared Error(Episode" + str(self._iterations) + "): " + str(self.sqerror))
-                    self.printConsole("Epsilon: " + str(self.epsilon))
-                if self._iterations % self.update == 0:
-                    self.Q_.Copy(self.Q)
-                    self.printConsole("Copied Target Network")
-                if self._iterations % self.save_every_steps == 0:
-                    self.Q.SaveToFile(CHECKPOINT)
-                    self.printConsole("Saved Checkpoint")
-                if self._iterations % self.step_epsilon == 0:
-                    self.epsilon = max(self.epsilon - self.dec_epsilon, self.final_epsilon)
-                    self.D = [] # Reset Replay Memory for new generation
-                    self.printConsole("New Episode! New Epsilon:" + str(self.epsilon))
-
+            # OpenCV uses [0, 1] range for describing an RGB image stored in a numpy array
+            # that ImageBuffer's [0, 255] range should be transformed to [0, 1]
+            cv2.imshow('image', self.image.ImageBuffer / 255.0)
+            cv2.waitKey(1)
 ##############################################################################
 
             if(received_frame.reset_reason == GAME_END):
-
 ##############################################################################
-                #(virtual finish() in random_walk.cpp)
+                #(virtual finish())
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
@@ -372,6 +237,7 @@ class Component(ApplicationSession):
     def onDisconnect(self):
         if reactor.running:
             reactor.stop()
+
 
 if __name__ == '__main__':
 
