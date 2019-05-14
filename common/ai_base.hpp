@@ -78,7 +78,7 @@ namespace aiwc {
     GAME_END       = 4,
     DEADLOCK       = 5,
     GOALKICK       = 6,
-    CORNERKICK       = 7,
+    CORNERKICK     = 7,
     PENALTYKICK    = 8,
     HALFTIME       = 9,
     EPISODE_END    = 10,
