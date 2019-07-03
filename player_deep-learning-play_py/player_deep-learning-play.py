@@ -198,7 +198,7 @@ class Component(ApplicationSession):
                 # Turn
             elif action_number == 4:
                 self.wheels[2*robot_id] = 0.5
-                self.wheels[2*robot_id + 1] = 75
+                self.wheels[2*robot_id + 1] = 0.75
                 # Turn
             elif action_number == 5:
                 self.wheels[2*robot_id] = 0.25
