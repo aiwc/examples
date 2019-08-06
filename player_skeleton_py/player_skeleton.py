@@ -15,6 +15,9 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 import argparse
 import sys
 
+import base64
+import numpy as np
+
 #reset_reason
 NONE = 0
 GAME_START = 1
@@ -45,6 +48,40 @@ TH = 2
 ACTIVE = 3
 TOUCH = 4
 
+class Received_Image(object):
+    def __init__(self, resolution, colorChannels):
+        self.resolution = resolution
+        self.colorChannels = colorChannels
+        # need to initialize the matrix at timestep 0
+        self.ImageBuffer = np.zeros((resolution[1], resolution[0], colorChannels)) # rows, columns, colorchannels
+    def update_image(self, received_parts):
+        self.received_parts = received_parts
+        for i in range(0,len(received_parts)):
+           dec_msg = base64.b64decode(self.received_parts[i].b64, '-_') # decode the base64 message
+           np_msg = np.fromstring(dec_msg, dtype=np.uint8) # convert byte array to numpy array
+           reshaped_msg = np_msg.reshape((self.received_parts[i].height, self.received_parts[i].width, 3))
+           for j in range(0, self.received_parts[i].height): # y axis
+               for k in range(0, self.received_parts[i].width): # x axis
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 0] = reshaped_msg[j, k, 0] # blue channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 1] = reshaped_msg[j, k, 1] # green channel
+                   self.ImageBuffer[j+self.received_parts[i].y, k+self.received_parts[i].x, 2] = reshaped_msg[j, k, 2] # red channel
+
+class SubImage(object):
+    def __init__(self, x, y, width, height, b64):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.b64 = b64
+
+class Frame(object):
+    def __init__(self):
+        self.time = None
+        self.score = None
+        self.reset_reason = None
+        self.subimages = None
+        self.coordinates = None
+
 class Component(ApplicationSession):
     """
     AI Base + Skeleton
@@ -74,12 +111,11 @@ class Component(ApplicationSession):
             #       max_linear_velocity, max_torque, codewords, ID: [0, 1, 2, 3, 4]
             # self.game_time = info['game_time']
             self.number_of_robots = info['number_of_robots']
-
             # self.field = info['field']
             # self.goal = info['goal']
             # self.penalty_area = info['penalty_area']
             # self.goal_area = info['goal_area']
-            # self.resolution = info['resolution']
+            self.resolution = info['resolution']
 
             # self.ball_radius = info['ball_radius']
             # self.ball_mass = info['ball_mass']
@@ -96,6 +132,10 @@ class Component(ApplicationSession):
             # self.max_torque = info['max_torque']
             # self.codewords = info['codewords']
 
+            self.colorChannels = 3
+            self.end_of_frame = False
+            self.received_frame = Frame()
+            self.image = Received_Image(self.resolution, self.colorChannels)
             return
 ##############################################################################
 
@@ -126,18 +166,51 @@ class Component(ApplicationSession):
             yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
             return
 
-        if 'reset_reason' in f:
-            if (f['reset_reason'] == GAME_START):
-                self.printConsole("Game started : " + str(f['time']))
-            if (f['reset_reason'] == SCORE_MYTEAM):
-                self.printConsole("My team scored : " + str(f['time']))
-            elif (f['reset_reason'] == SCORE_OPPONENT):
-                self.printConsole("Opponent scored : " + str(f['time']))
-            if (f['reset_reason'] == EPISODE_END):
-                self.printConsole("Episode ended.")
-            if (f['reset_reason'] == GAME_END):
-                self.printConsole("Game ended.")
+        # initiate empty frame
+        if (self.end_of_frame):
+            self.received_frame = Frame()
+            self.end_of_frame = False
+        received_subimages = []
 
+        if 'time' in f:
+            self.received_frame.time = f['time']
+        if 'score' in f:
+            self.received_frame.score = f['score']
+        if 'reset_reason' in f:
+            self.received_frame.reset_reason = f['reset_reason']
+        if 'subimages' in f:
+            self.received_frame.subimages = f['subimages']
+            # Uncomment following block to use images.
+            # for s in self.received_frame.subimages:
+            #     received_subimages.append(SubImage(s['x'],
+            #                                        s['y'],
+            #                                        s['w'],
+            #                                        s['h'],
+            #                                        s['base64'].encode('utf8')))
+            # self.image.update_image(received_subimages)
+        if 'coordinates' in f:
+            self.received_frame.coordinates = f['coordinates']
+        if 'EOF' in f:
+            self.end_of_frame = f['EOF']
+
+        #self.printConsole(self.received_frame.time)
+        #self.printConsole(self.received_frame.score)
+        #self.printConsole(self.received_frame.reset_reason)
+        #self.printConsole(self.end_of_frame)
+
+        if (self.end_of_frame):
+            # To get the image at the end of each frame use the variable:
+            # self.image.ImageBuffer
+##############################################################################
+            #(virtual update())
+            wheels = []
+            for i in range(self.number_of_robots):
+                wheels.append(self.max_linear_velocity[i])
+                wheels.append(self.max_linear_velocity[i])
+            set_wheel(self, wheels)
+##############################################################################
+
+            if (self.received_frame.reset_reason == GAME_END):
 ##############################################################################
                 #(virtual finish())
                 #save your data
@@ -150,31 +223,6 @@ class Component(ApplicationSession):
                     yield self.leave()
                 except Exception as e:
                     self.printConsole("Error: {}".format(e))
-##############################################################################
-
-        # if 'coordinates' in f:
-            # myteam = f['coordinates'][MY_TEAM]
-            # opponent = f['coordinates'][OP_TEAM]
-            # ball =  f['coordinates'][BALL]
-
-            # myteam0_x = f['coordinates'][MY_TEAM][0][X]
-            # myteam0_y = f['coordinates'][MY_TEAM][0][Y]
-            # myteam0_th = f['coordinates'][MY_TEAM][0][TH]
-            # myteam0_act = f['coordinates'][MY_TEAM][0][ACTIVE]
-            # myteam0_tou = f['coordinates'][MY_TEAM][0][TOUCH]
-            # if (myteam0_tou == True):
-            #   self.printConsole("My robot 0 touched the ball!")
-
-        if 'EOF' in f:
-            if (f['EOF']):
-
-##############################################################################
-                #(virtual update())
-                wheels = []
-                for i in range(self.number_of_robots):
-                    wheels.append(self.max_linear_velocity[i])
-                    wheels.append(self.max_linear_velocity[i])
-                set_wheel(self, wheels)
 ##############################################################################
 
     def onDisconnect(self):

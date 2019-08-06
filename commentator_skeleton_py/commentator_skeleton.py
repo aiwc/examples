@@ -14,17 +14,12 @@ from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 
 import argparse
 import random
-import math
-import os
 import sys
 
 import base64
 import numpy as np
 
-#from PIL import Image
-from dqn_nn import NeuralNetwork
-
-#reset_reason
+# reset_reason
 NONE = 0
 GAME_START = 1
 SCORE_MYTEAM = 2
@@ -37,14 +32,14 @@ PENALTYKICK = 8
 HALFTIME = 9
 EPISODE_END = 10
 
-#game_state
+# game_state
 STATE_DEFAULT = 0
 STATE_KICKOFF = 1
 STATE_GOALKICK = 2
 STATE_CORNERKICK = 3
 STATE_PENALTYKICK = 4
 
-#coordinates
+# coordinates
 MY_TEAM = 0
 OP_TEAM = 1
 BALL = 2
@@ -53,9 +48,6 @@ Y = 1
 TH = 2
 ACTIVE = 3
 TOUCH = 4
-
-#path to your checkpoint
-CHECKPOINT = os.path.join(os.path.dirname(__file__), 'dqn.ckpt')
 
 class Received_Image(object):
     def __init__(self, resolution, colorChannels):
@@ -90,11 +82,10 @@ class Frame(object):
         self.reset_reason = None
         self.subimages = None
         self.coordinates = None
-        self.half_passed = None
 
 class Component(ApplicationSession):
     """
-    AI Base + Deep Q Network example
+    AI Base + Commentator Skeleton
     """
 
     def __init__(self, config):
@@ -122,8 +113,8 @@ class Component(ApplicationSession):
             # self.game_time = info['game_time']
             # self.number_of_robots = info['number_of_robots']
 
-            # self.field = info['field']
-            # self.goal = info['goal']
+            self.field = info['field']
+            self.goal = info['goal']
             # self.penalty_area = info['penalty_area']
             # self.goal_area = info['goal_area']
             self.resolution = info['resolution']
@@ -139,17 +130,14 @@ class Component(ApplicationSession):
             # self.wheel_radius = info['wheel_radius']
             # self.wheel_mass = info['wheel_mass']
 
-            self.max_linear_velocity = info['max_linear_velocity']
+            # self.max_linear_velocity = info['max_linear_velocity']
             # self.max_torque = info['max_torque']
             # self.codewords = info['codewords']
 
-            self.colorChannels = 3 # nf in dqn_main.py
+            self.colorChannels = 3
             self.end_of_frame = False
-            self.image = Received_Image(self.resolution, self.colorChannels)
             self.received_frame = Frame()
-            self._frame = 0
-            self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
-            self.wheels = [0 for _ in range(10)]
+            self.image = Received_Image(self.resolution, self.colorChannels)
             return
 ##############################################################################
 
@@ -170,61 +158,15 @@ class Component(ApplicationSession):
         except Exception as e:
             self.printConsole("Error: {}".format(e))
         else:
-            self.printConsole("I am ready for the game!")
+            self.printConsole("I am the commentator for this game!")
 
     @inlineCallbacks
     def on_event(self, f):
 
         @inlineCallbacks
-        def set_wheel(self, robot_wheels):
-            yield self.call(u'aiwc.set_speed', args.key, robot_wheels)
+        def set_comment(self, commentary):
+            yield self.call(u'aiwc.commentate', args.key, commentary)
             return
-
-        def set_action(robot_id, action_number):
-            if action_number == 0:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.75
-                # Go Forward with fixed velocity
-            elif action_number == 1:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.5
-                # Turn
-            elif action_number == 2:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0.25
-                # Turn
-            elif action_number == 3:
-                self.wheels[2*robot_id] = 0.75
-                self.wheels[2*robot_id + 1] = 0
-                # Turn
-            elif action_number == 4:
-                self.wheels[2*robot_id] = 0.5
-                self.wheels[2*robot_id + 1] = 0.75
-                # Turn
-            elif action_number == 5:
-                self.wheels[2*robot_id] = 0.25
-                self.wheels[2*robot_id + 1] = 0.75
-                # Turn
-            elif action_number == 6:
-                self.wheels[2*robot_id] = 0
-                self.wheels[2*robot_id + 1] = 0.75
-                # Turn
-            elif action_number == 7:
-                self.wheels[2*robot_id] = -0.75
-                self.wheels[2*robot_id + 1] = -0.75
-                # Go Backward with fixed velocity
-            elif action_number == 8:
-                self.wheels[2*robot_id] = -0.1
-                self.wheels[2*robot_id + 1] = 0.1
-                # Spin
-            elif action_number == 9:
-                self.wheels[2*robot_id] = 0.1
-                self.wheels[2*robot_id + 1] = -0.1
-                # Spin
-            elif action_number == 10:
-                self.wheels[2*robot_id] = 0
-                self.wheels[2*robot_id + 1] = 0
-                # Do not move
 
         # initiate empty frame
         if (self.end_of_frame):
@@ -240,61 +182,77 @@ class Component(ApplicationSession):
             self.received_frame.reset_reason = f['reset_reason']
         if 'half_passed' in f:
             self.received_frame.half_passed = f['half_passed']
+        if 'ball_ownership' in f:
+            self.received_frame.ball_ownership = f['ball_ownership']
         if 'subimages' in f:
             self.received_frame.subimages = f['subimages']
-            # Comment the next lines if you don't need to use the image information
-            for s in self.received_frame.subimages:
-                received_subimages.append(SubImage(s['x'],
-                                                   s['y'],
-                                                   s['w'],
-                                                   s['h'],
-                                                   s['base64'].encode('utf8')))
-            self.image.update_image(received_subimages)
+            # Uncomment following block to use images.
+            # for s in self.received_frame.subimages:
+            #     received_subimages.append(SubImage(s['x'],
+            #                                        s['y'],
+            #                                        s['w'],
+            #                                        s['h'],
+            #                                        s['base64'].encode('utf8')))
+            # self.image.update_image(received_subimages)
         if 'coordinates' in f:
             self.received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-
-        #self.printConsole(self.received_frame.time)
-        #self.printConsole(self.received_frame.score)
-        #self.printConsole(self.received_frame.reset_reason)
-        #self.printConsole(self.end_of_frame)
+            #self.printConsole(self.received_frame.time)
+            #self.printConsole(self.received_frame.score)
+            #self.printConsole(self.received_frame.reset_reason)
+            #self.printConsole(self.received_frame.half_passed)
+            #self.printConsole(self.end_of_frame)
 
         if (self.end_of_frame):
-            self._frame += 1
+            #self.printConsole("end of frame")
 
+            if (self.received_frame.reset_reason == GAME_START):
+                if (not self.received_frame.half_passed):
+                    set_comment(self, "Game has begun")
+                else:
+                    set_comment(self, "Second half has begun")
+
+            elif (self.received_frame.reset_reason == DEADLOCK):
+                set_comment(self, "Position is reset since no one touched the ball")
+
+            elif (self.received_frame.reset_reason == GOALKICK):
+                set_comment(self, "A goal kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
+
+            elif (self.received_frame.reset_reason == CORNERKICK):
+                set_comment(self, "A corner kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
+
+            elif (self.received_frame.reset_reason == PENALTYKICK):
+                set_comment(self, "A penalty kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
             # To get the image at the end of each frame use the variable:
-            #self.printConsole(self.image.ImageBuffer)
+            # self.image.ImageBuffer
+
+            if (self.received_frame.coordinates[BALL][X] >= (self.field[X] / 2) and abs(self.received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
+                set_comment(self, "Team Red scored!!")
+            elif (self.received_frame.coordinates[BALL][X] <= (-self.field[X] / 2) and abs(self.received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
+                set_comment(self, "Team Blue scored!!")
+
+            if (self.received_frame.reset_reason == HALFTIME):
+                set_comment(self, "The halftime has met. Current score is: {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+
+            if (self.received_frame.reset_reason == EPISODE_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    set_comment(self, "Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    set_comment(self, "Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
+                else:
+                    set_comment(self, "The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+
+            if (self.received_frame.reset_reason == GAME_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    set_comment(self, "Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    set_comment(self, "Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
+                else:
+                    set_comment(self, "The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
 
 ##############################################################################
-            #(virtual update() in random_walk.cpp)
-
-            # State
-
-            # If you want to use the image as the input for your network
-            # You can use pillow: PIL.Image to get and resize the input frame as follows
-            #img = Image.fromarray((self.image.ImageBuffer/255).astype('uint8'), 'RGB') # Get normalized image as a PIL.Image object
-            #resized_img = img.resize((NEW_X,NEW_Y))
-            #final_img = np.array(resized_img)
-
-            # Example: using the normalized coordinates for robot 0 and ball
-            position = [round(self.received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(self.received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2),
-                        round(self.received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(self.received_frame.coordinates[BALL][X]/2.05, 2),
-                        round(self.received_frame.coordinates[BALL][Y]/1.35, 2)]
-
-            # Action
-            action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
-
-            # Set robot wheels
-            set_action(0, action)
-            set_wheel(self, self.wheels)
-
-##############################################################################
-
-            if(self.received_frame.reset_reason == GAME_END):
-
-##############################################################################
-                #(virtual finish() in random_walk.cpp)
+                #(virtual finish())
                 #save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
                     #output.write('yourvariables')
