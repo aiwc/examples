@@ -136,6 +136,7 @@ class Component(ApplicationSession):
 
             self.colorChannels = 3
             self.end_of_frame = False
+            self.received_frame = Frame()
             self.image = Received_Image(self.resolution, self.colorChannels)
             return
 ##############################################################################
@@ -168,77 +169,87 @@ class Component(ApplicationSession):
             return
 
         # initiate empty frame
-        received_frame = Frame()
+        if (self.end_of_frame):
+            self.received_frame = Frame()
+            self.end_of_frame = False
         received_subimages = []
 
         if 'time' in f:
-            received_frame.time = f['time']
+            self.received_frame.time = f['time']
         if 'score' in f:
-            received_frame.score = f['score']
+            self.received_frame.score = f['score']
         if 'reset_reason' in f:
-            received_frame.reset_reason = f['reset_reason']
+            self.received_frame.reset_reason = f['reset_reason']
         if 'half_passed' in f:
-            received_frame.half_passed = f['half_passed']
+            self.received_frame.half_passed = f['half_passed']
         if 'ball_ownership' in f:
-            received_frame.ball_ownership = f['ball_ownership']
+            self.received_frame.ball_ownership = f['ball_ownership']
         if 'subimages' in f:
-            received_frame.subimages = f['subimages']
-            # Comment the next lines if you don't need to use the image information
-            for s in received_frame.subimages:
-                received_subimages.append(SubImage(s['x'],
-                                                   s['y'],
-                                                   s['w'],
-                                                   s['h'],
-                                                   s['base64'].encode('utf8')))
-            self.image.update_image(received_subimages)
+            self.received_frame.subimages = f['subimages']
+            # Uncomment following block to use images.
+            # for s in self.received_frame.subimages:
+            #     received_subimages.append(SubImage(s['x'],
+            #                                        s['y'],
+            #                                        s['w'],
+            #                                        s['h'],
+            #                                        s['base64'].encode('utf8')))
+            # self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']
+            self.received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
-            #self.printConsole(received_frame.time)
-            #self.printConsole(received_frame.score)
-            #self.printConsole(received_frame.reset_reason)
-            #self.printConsole(received_frame.half_passed)
+            #self.printConsole(self.received_frame.time)
+            #self.printConsole(self.received_frame.score)
+            #self.printConsole(self.received_frame.reset_reason)
+            #self.printConsole(self.received_frame.half_passed)
             #self.printConsole(self.end_of_frame)
 
         if (self.end_of_frame):
             #self.printConsole("end of frame")
 
-            if (received_frame.reset_reason == GAME_START):
-                if (not received_frame.half_passed):
+            if (self.received_frame.reset_reason == GAME_START):
+                if (not self.received_frame.half_passed):
                     set_comment(self, "Game has begun")
                 else:
                     set_comment(self, "Second half has begun")
 
-            elif (received_frame.reset_reason == DEADLOCK):
+            elif (self.received_frame.reset_reason == DEADLOCK):
                 set_comment(self, "Position is reset since no one touched the ball")
 
-            elif (received_frame.reset_reason == GOALKICK):
-                set_comment(self, "A goal kick of Team {}".format("Red" if received_frame.ball_ownership else "Blue"))
+            elif (self.received_frame.reset_reason == GOALKICK):
+                set_comment(self, "A goal kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
 
-            elif (received_frame.reset_reason == CORNERKICK):
-                set_comment(self, "A corner kick of Team {}".format("Red" if received_frame.ball_ownership else "Blue"))
+            elif (self.received_frame.reset_reason == CORNERKICK):
+                set_comment(self, "A corner kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
 
-            elif (received_frame.reset_reason == PENALTYKICK):
-                set_comment(self, "A penalty kick of Team {}".format("Red" if received_frame.ball_ownership else "Blue"))
+            elif (self.received_frame.reset_reason == PENALTYKICK):
+                set_comment(self, "A penalty kick of Team {}".format("Red" if self.received_frame.ball_ownership else "Blue"))
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-            if (received_frame.coordinates[BALL][X] >= (self.field[X] / 2) and abs(received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
+            if (self.received_frame.coordinates[BALL][X] >= (self.field[X] / 2) and abs(self.received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
                 set_comment(self, "Team Red scored!!")
-            elif (received_frame.coordinates[BALL][X] <= (-self.field[X] / 2) and abs(received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
+            elif (self.received_frame.coordinates[BALL][X] <= (-self.field[X] / 2) and abs(self.received_frame.coordinates[BALL][Y]) <= (self.goal[Y] / 2)):
                 set_comment(self, "Team Blue scored!!")
 
-            if (received_frame.reset_reason == HALFTIME):
-                set_comment(self, "The halftime has met. Current score is: {} : {}".format(received_frame.score[0], received_frame.score[1]))
+            if (self.received_frame.reset_reason == HALFTIME):
+                set_comment(self, "The halftime has met. Current score is: {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
 
-            if (received_frame.reset_reason == GAME_END):
-                if (received_frame.score[0] > received_frame.score[1]):
-                    set_comment(self, "Team Red won the game with score {} : {}".format(received_frame.score[0], received_frame.score[1]))
-                elif (received_frame.score[0] < received_frame.score[1]):
-                    set_comment(self, "Team Blue won the game with score {} : {}".format(received_frame.score[1], received_frame.score[0]))
+            if (self.received_frame.reset_reason == EPISODE_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    set_comment(self, "Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    set_comment(self, "Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
                 else:
-                    set_comment(self, "The game ended in a tie with score {} : {}".format(received_frame.score[0], received_frame.score[1]))
+                    set_comment(self, "The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+
+            if (self.received_frame.reset_reason == GAME_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    set_comment(self, "Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    set_comment(self, "Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
+                else:
+                    set_comment(self, "The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
 
 ##############################################################################
                 #(virtual finish())

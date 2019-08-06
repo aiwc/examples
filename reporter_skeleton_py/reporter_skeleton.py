@@ -136,6 +136,7 @@ class Component(ApplicationSession):
 
             self.colorChannels = 3
             self.end_of_frame = False
+            self.received_frame = Frame()
             self.image = Received_Image(self.resolution, self.colorChannels)
             self.paragraphs = []
             return
@@ -169,46 +170,59 @@ class Component(ApplicationSession):
             return
 
         # initiate empty frame
-        received_frame = Frame()
+        if (self.end_of_frame):
+            self.received_frame = Frame()
+            self.end_of_frame = False
         received_subimages = []
 
         if 'time' in f:
-            received_frame.time = f['time']
+            self.received_frame.time = f['time']
         if 'score' in f:
-            received_frame.score = f['score']
+            self.received_frame.score = f['score']
         if 'reset_reason' in f:
-            received_frame.reset_reason = f['reset_reason']
+            self.received_frame.reset_reason = f['reset_reason']
         if 'subimages' in f:
-            received_frame.subimages = f['subimages']
-            # Comment the next lines if you don't need to use the image information
-            for s in received_frame.subimages:
-                received_subimages.append(SubImage(s['x'],
-                                                   s['y'],
-                                                   s['w'],
-                                                   s['h'],
-                                                   s['base64'].encode('utf8')))
-            self.image.update_image(received_subimages)
+            self.received_frame.subimages = f['subimages']
+            # Uncomment following block to use images.
+            # for s in self.received_frame.subimages:
+            #     received_subimages.append(SubImage(s['x'],
+            #                                        s['y'],
+            #                                        s['w'],
+            #                                        s['h'],
+            #                                        s['base64'].encode('utf8')))
+            # self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']
+            self.received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
 
-        #self.printConsole(received_frame.time)
-        #self.printConsole(received_frame.score)
-        #self.printConsole(received_frame.reset_reason)
+        #self.printConsole(self.received_frame.time)
+        #self.printConsole(self.received_frame.score)
+        #self.printConsole(self.received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
 
         if (self.end_of_frame):
             # To get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
-
-            if (received_frame.reset_reason == GAME_END):
-                if (received_frame.score[0] > received_frame.score[1]):
-                    self.paragraphs.append("Team Red won the game with score {} : {}".format(received_frame.score[0], received_frame.score[1]))
-                elif (received_frame.score[0] < received_frame.score[1]):
-                    self.paragraphs.append("Team Blue won the game with score {} : {}".format(received_frame.score[1], received_frame.score[0]))
+            if (self.received_frame.reset_reason == EPISODE_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    self.paragraphs.append("Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    self.paragraphs.append("Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
                 else:
-                    self.paragraphs.append("The game ended in a tie with score {} : {}".format(received_frame.score[0], received_frame.score[1]))
+                    self.paragraphs.append("The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+
+                self.paragraphs.append("It was really a great match!")
+
+                set_report(self, self.paragraphs)
+
+            if (self.received_frame.reset_reason == GAME_END):
+                if (self.received_frame.score[0] > self.received_frame.score[1]):
+                    self.paragraphs.append("Team Red won the game with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
+                elif (self.received_frame.score[0] < self.received_frame.score[1]):
+                    self.paragraphs.append("Team Blue won the game with score {} : {}".format(self.received_frame.score[1], self.received_frame.score[0]))
+                else:
+                    self.paragraphs.append("The game ended in a tie with score {} : {}".format(self.received_frame.score[0], self.received_frame.score[1]))
 
                 self.paragraphs.append("It was really a great match!")
 

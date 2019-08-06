@@ -152,6 +152,7 @@ class Component(ApplicationSession):
             self.prev_posture = []
             self.prev_ball = []
             self.previous_frame = Frame()
+            self.received_frame = Frame()
 
             self.touch = [False,False,False,False,False]
             self.def_idx = 0
@@ -271,10 +272,10 @@ class Component(ApplicationSession):
                                     max_velocity)
 
     # copy coordinates from frames to different variables just for convenience
-    def get_coord(self, received_frame):
-        self.cur_ball = received_frame.coordinates[BALL]
-        self.cur_posture = received_frame.coordinates[MY_TEAM]
-        self.cur_posture_op = received_frame.coordinates[OP_TEAM]
+    def get_coord(self):
+        self.cur_ball = self.received_frame.coordinates[BALL]
+        self.cur_posture = self.received_frame.coordinates[MY_TEAM]
+        self.cur_posture_op = self.received_frame.coordinates[OP_TEAM]
         self.prev_ball = self.previous_frame.coordinates[BALL]
         self.prev_posture = self.previous_frame.coordinates[MY_TEAM]
         self.prev_posture_op = self.previous_frame.coordinates[OP_TEAM]
@@ -588,24 +589,26 @@ class Component(ApplicationSession):
                                       3.5, 0.4, False)
 
         # initiate empty frame
-        received_frame = Frame()
+        if (self.end_of_frame):
+            self.received_frame = Frame()
+            self.end_of_frame = False
         received_subimages = []
 
         if 'time' in f:
-            received_frame.time = f['time']
+            self.received_frame.time = f['time']
         if 'score' in f:
-            received_frame.score = f['score']
+            self.received_frame.score = f['score']
         if 'reset_reason' in f:
-            received_frame.reset_reason = f['reset_reason']
+            self.received_frame.reset_reason = f['reset_reason']
         if 'game_state' in f:
-            received_frame.game_state = f['game_state']
+            self.received_frame.game_state = f['game_state']
         if 'ball_ownership' in f:
-            received_frame.ball_ownership = f['ball_ownership']
+            self.received_frame.ball_ownership = f['ball_ownership']
         if 'half_passed' in f:
-            received_frame.half_passed = f['half_passed']
+            self.received_frame.half_passed = f['half_passed']
         if 'subimages' in f:
-            received_frame.subimages = f['subimages']
-            for s in received_frame.subimages:
+            self.received_frame.subimages = f['subimages']
+            for s in self.received_frame.subimages:
                 received_subimages.append(SubImage(s['x'],
                                                    s['y'],
                                                    s['w'],
@@ -613,7 +616,7 @@ class Component(ApplicationSession):
                                                    s['base64'].encode('utf8')))
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']
+            self.received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
 
@@ -621,13 +624,13 @@ class Component(ApplicationSession):
             # to get the image at the end of each frame use the variable:
             # self.image.ImageBuffer
 
-            if (received_frame.reset_reason != NONE):
-                self.previous_frame = received_frame
+            if (self.received_frame.reset_reason != NONE):
+                self.previous_frame = self.received_frame
 
-            self.get_coord(received_frame)
+            self.get_coord()
             self.find_closest_robot()
 
-            if (received_frame.reset_reason == EPISODE_END):
+            if (self.received_frame.reset_reason == EPISODE_END):
                 # EPISODE_END is sent instead of GAME_END when 'repeat' option is set to 'true'
                 # to mark the end of episode
                 # you can reinitialize the parameters, count the number of episodes done, etc. here
@@ -635,8 +638,8 @@ class Component(ApplicationSession):
                 # this example does not do anything at episode end
                 pass
 
-            if (received_frame.reset_reason == HALFTIME):
-                # halftime is met - from next frame, received_frame.half_passed will be set to True
+            if (self.received_frame.reset_reason == HALFTIME):
+                # halftime is met - from next frame, self.received_frame.half_passed will be set to True
                 # although the simulation switches sides,
                 # coordinates and images given to your AI soccer algorithm will stay the same
                 # that your team is red and located on left side whether it is 1st half or 2nd half
@@ -645,7 +648,7 @@ class Component(ApplicationSession):
                 pass
 
             ##############################################################################
-            if (received_frame.game_state == STATE_DEFAULT):
+            if (self.received_frame.game_state == STATE_DEFAULT):
                 # robot functions in STATE_DEFAULT
                 goalkeeper(self, 0)
                 defender(self, 1)
@@ -655,22 +658,22 @@ class Component(ApplicationSession):
 
                 set_wheel(self, self.wheels)
             ##############################################################################
-            elif (received_frame.game_state == STATE_KICKOFF):
+            elif (self.received_frame.game_state == STATE_KICKOFF):
                 #  if the ball belongs to my team, initiate kickoff
-                if (received_frame.ball_ownership):
+                if (self.received_frame.ball_ownership):
                     self.set_target_position(4, 0, 0, 1.4, 3.0, 0.4, False)
 
                 set_wheel(self, self.wheels)
             ##############################################################################
-            elif (received_frame.game_state == STATE_GOALKICK):
+            elif (self.received_frame.game_state == STATE_GOALKICK):
                 # if the ball belongs to my team,
                 # drive the goalkeeper to kick the ball
-                if (received_frame.ball_ownership):
+                if (self.received_frame.ball_ownership):
                     self.set_wheel_velocity(0, self.max_linear_velocity[0], self.max_linear_velocity[0], True)
 
                 set_wheel(self, self.wheels)
             ##############################################################################
-            elif (received_frame.game_state == STATE_CORNERKICK):
+            elif (self.received_frame.game_state == STATE_CORNERKICK):
                 # just play as simple as possible
                 goalkeeper(self, 0)
                 defender(self, 1)
@@ -680,15 +683,15 @@ class Component(ApplicationSession):
 
                 set_wheel(self, self.wheels)
             ##############################################################################
-            elif (received_frame.game_state == STATE_PENALTYKICK):
+            elif (self.received_frame.game_state == STATE_PENALTYKICK):
                 # if the ball belongs to my team,
                 # drive the forward to kick the ball
-                if (received_frame.ball_ownership):
+                if (self.received_frame.ball_ownership):
                     self.set_wheel_velocity(4, self.max_linear_velocity[0], self.max_linear_velocity[0], True)
 
                 set_wheel(self, self.wheels)
             ##############################################################################
-            if (received_frame.reset_reason == GAME_END):
+            if (self.received_frame.reset_reason == GAME_END):
                 # (virtual finish() in random_walk.cpp)
                 # save your data
                 with open(args.datapath + '/result.txt', 'w') as output:
@@ -703,7 +706,7 @@ class Component(ApplicationSession):
             ##############################################################################
 
             self.end_of_frame = False
-            self.previous_frame = received_frame
+            self.previous_frame = self.received_frame
 
     def onDisconnect(self):
         if reactor.running:

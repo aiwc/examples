@@ -146,6 +146,7 @@ class Component(ApplicationSession):
             self.colorChannels = 3 # nf in dqn_main.py
             self.end_of_frame = False
             self.image = Received_Image(self.resolution, self.colorChannels)
+            self.received_frame = Frame()
             self._frame = 0
             self.Q = NeuralNetwork(None, CHECKPOINT, False) # 2nd term: False to start training from scratch, use CHECKPOINT to load a checkpoint
             self.wheels = [0 for _ in range(10)]
@@ -226,21 +227,23 @@ class Component(ApplicationSession):
                 # Do not move
 
         # initiate empty frame
-        received_frame = Frame()
+        if (self.end_of_frame):
+            self.received_frame = Frame()
+            self.end_of_frame = False
         received_subimages = []
 
         if 'time' in f:
-            received_frame.time = f['time']
+            self.received_frame.time = f['time']
         if 'score' in f:
-            received_frame.score = f['score']
+            self.received_frame.score = f['score']
         if 'reset_reason' in f:
-            received_frame.reset_reason = f['reset_reason']
+            self.received_frame.reset_reason = f['reset_reason']
         if 'half_passed' in f:
-            received_frame.half_passed = f['half_passed']
+            self.received_frame.half_passed = f['half_passed']
         if 'subimages' in f:
-            received_frame.subimages = f['subimages']
+            self.received_frame.subimages = f['subimages']
             # Comment the next lines if you don't need to use the image information
-            for s in received_frame.subimages:
+            for s in self.received_frame.subimages:
                 received_subimages.append(SubImage(s['x'],
                                                    s['y'],
                                                    s['w'],
@@ -248,13 +251,13 @@ class Component(ApplicationSession):
                                                    s['base64'].encode('utf8')))
             self.image.update_image(received_subimages)
         if 'coordinates' in f:
-            received_frame.coordinates = f['coordinates']
+            self.received_frame.coordinates = f['coordinates']
         if 'EOF' in f:
             self.end_of_frame = f['EOF']
 
-        #self.printConsole(received_frame.time)
-        #self.printConsole(received_frame.score)
-        #self.printConsole(received_frame.reset_reason)
+        #self.printConsole(self.received_frame.time)
+        #self.printConsole(self.received_frame.score)
+        #self.printConsole(self.received_frame.reset_reason)
         #self.printConsole(self.end_of_frame)
 
         if (self.end_of_frame):
@@ -275,9 +278,9 @@ class Component(ApplicationSession):
             #final_img = np.array(resized_img)
 
             # Example: using the normalized coordinates for robot 0 and ball
-            position = [round(received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2),
-                        round(received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(received_frame.coordinates[BALL][X]/2.05, 2),
-                        round(received_frame.coordinates[BALL][Y]/1.35, 2)]
+            position = [round(self.received_frame.coordinates[MY_TEAM][0][X]/2.05, 2), round(self.received_frame.coordinates[MY_TEAM][0][Y]/1.35, 2),
+                        round(self.received_frame.coordinates[MY_TEAM][0][TH]/(2*math.pi), 2), round(self.received_frame.coordinates[BALL][X]/2.05, 2),
+                        round(self.received_frame.coordinates[BALL][Y]/1.35, 2)]
 
             # Action
             action = self.Q.BestAction(np.array(position)) # using CNNs use final_img as input
@@ -288,7 +291,7 @@ class Component(ApplicationSession):
 
 ##############################################################################
 
-            if(received_frame.reset_reason == GAME_END):
+            if(self.received_frame.reset_reason == GAME_END):
 
 ##############################################################################
                 #(virtual finish() in random_walk.cpp)
